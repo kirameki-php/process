@@ -1,8 +1,8 @@
-# Core library for PHP
+# Process handling library for PHP
 
-![Test](https://github.com/kirameki-php/core/actions/workflows/test.yml/badge.svg)
-[![codecov](https://codecov.io/gh/kirameki-php/core/branch/main/graph/badge.svg?token=1PV8FB4O4O)](https://codecov.io/gh/kirameki-php/core)
-![GitHub](https://img.shields.io/github/license/kirameki-php/core)
+![Test](https://github.com/kirameki-php/process/actions/workflows/test.yml/badge.svg)
+[![codecov](https://codecov.io/gh/kirameki-php/process/branch/main/graph/badge.svg?token=1PV8FB4O4O)](https://codecov.io/gh/kirameki-php/process)
+![GitHub](https://img.shields.io/github/license/kirameki-php/process)
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@
 ## Installation
 
 ```
-composer require kirameki/core
+composer require kirameki/process
 ```
 
 ## Example

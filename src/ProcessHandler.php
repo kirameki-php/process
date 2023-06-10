@@ -3,10 +3,11 @@
 namespace Kirameki\Process;
 
 use Closure;
+use Kirameki\Process\Exceptions\CommandFailedException;
+use Kirameki\Process\Exceptions\CommandTimeoutException;
 use Kirameki\Stream\FileStream;
 use function array_keys;
 use function is_resource;
-use function microtime;
 use function proc_close;
 use function proc_get_status;
 use function proc_terminate;
@@ -262,9 +263,8 @@ class ProcessHandler
         }
 
         if ($this->exitCode !== null) {
-            if ($this->exitCallback !== null) {
-                ($this->exitCallback)($this->exitCode);
-            }
+            $callback = $this->exitCallback ?? $this->handleExit(...);
+            $callback($this->exitCode);
         }
 
         return $this->status;
@@ -301,10 +301,14 @@ class ProcessHandler
 
     protected function handleExit(int $code): void
     {
-        return match ($code) {
-            0 => null,
-            124 => $this->handleKill(),
-            default => $this->handleOther($code),
-        };
+        if ($code === 0) {
+            return;
+        }
+
+        if ($code === 124) {
+            throw new CommandTimeoutException($code);
+        }
+
+        throw new CommandFailedException($code);
     }
 }

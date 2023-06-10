@@ -1,6 +1,6 @@
 {
-  "name": "kirameki/core",
-  "description": "A core library for Kirameki Framework",
+  "name": "kirameki/process",
+  "description": "A process library for Kirameki Framework",
   "type": "library",
   "license": "MIT",
   "require": {
