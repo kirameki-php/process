@@ -2,8 +2,6 @@
 
 namespace Kirameki\Process\Exceptions;
 
-use Throwable;
-
 class CommandFailedException extends CommandException
 {
 }
