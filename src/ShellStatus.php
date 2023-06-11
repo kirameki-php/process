@@ -41,16 +41,11 @@ class ShellStatus
     }
 
     /**
-     * @return bool
-     * Returns **true** if resource is open, **false** otherwise.
+     * @return void
      */
-    public function update(): bool
+    public function update(): void
     {
         $process = $this->process;
-
-        if (!is_resource($process)) {
-            return false;
-        }
 
         $status = proc_get_status($process);
 
@@ -62,10 +57,8 @@ class ShellStatus
             $this->lastSignal = $status['termsig'];
         }
 
-        if ($this->exitCode !== null && $status['exitcode'] !== -1) {
+        if ($this->exitCode === null && $status['exitcode'] !== -1) {
             $this->exitCode = $status['exitcode'];
         }
-
-        return true;
     }
 }

@@ -7,12 +7,13 @@ use InvalidArgumentException;
 use IteratorAggregate;
 use Kirameki\Core\Exceptions\UnreachableException;
 use Kirameki\Process\Exceptions\CommandFailedException;
-use Kirameki\Process\Exceptions\CommandTimeoutException;
 use Kirameki\Stream\FileStream;
 use Traversable;
+use function dump;
 use function is_resource;
 use function proc_close;
 use function proc_terminate;
+use function stat;
 use function stream_get_contents;
 use function stream_select;
 use function stream_set_blocking;
@@ -62,16 +63,16 @@ class ShellRunner implements IteratorAggregate
      */
     public function getIterator(): Traversable
     {
-        $read = [$this->stdout->getResource(), $this->stderr->getResource()];
-        $write = [];
+        $read = [$this->pipes[1], $this->pipes[2]];
+        $write = [$this->process];
         $except = [];
         while($this->isRunning()) {
             $count = stream_select($read, $write, $except, 60);
             if ($count > 0) {
-                if (($stdout = $this->stdout->readToEnd()) !== '') {
+                if (($stdout = (string) $this->readStdout()) !== '') {
                     yield $stdout;
                 }
-                if (($stderr = $this->stderr->readToEnd()) !== '') {
+                if (($stderr = (string) $this->readStderr()) !== '') {
                     yield $stderr;
                 }
             }
@@ -208,13 +209,17 @@ class ShellRunner implements IteratorAggregate
     {
         $status = $this->status;
 
-        if ($status->update()) {
+        if (!is_resource($this->process)) {
             return $status;
         }
 
-        $this->closeProcess();
+        $status->update();
 
-        $this->handleExit($status->exitCode ?? -1);
+        if ($status->exitCode !== null) {
+            $this->drainPipes();
+            proc_close($this->process);
+            $this->handleExit($status->exitCode);
+        }
 
         return $status;
     }
@@ -252,7 +257,7 @@ class ShellRunner implements IteratorAggregate
         return $output;
     }
 
-    protected function closeProcess(): void
+    protected function drainPipes(): void
     {
         // Read remaining output from the pipes before calling
         // `proc_close(...)`. Otherwise unread data will be lost.
@@ -262,7 +267,6 @@ class ShellRunner implements IteratorAggregate
             $output = (string) $this->readPipe($fd);
             $stdio->seek(-strlen($output), SEEK_CUR);
         }
-        proc_close($this->process);
     }
 
     protected function handleExit(int $code): void
