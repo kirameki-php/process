@@ -9,7 +9,6 @@ use Kirameki\Core\Exceptions\UnreachableException;
 use Kirameki\Process\Exceptions\CommandFailedException;
 use Kirameki\Stream\FileStream;
 use Traversable;
-use function dump;
 use function in_array;
 use function is_resource;
 use function proc_close;
@@ -90,8 +89,6 @@ class ShellRunner implements IteratorAggregate
             usleep($usleep);
         }
 
-        $this->updateStatus();
-
         return $this->getResult();
     }
 
@@ -101,15 +98,15 @@ class ShellRunner implements IteratorAggregate
      */
     public function signal(int $signal): bool
     {
-        if (!is_resource($this->process)) {
+        if ($this->isDone()) {
             return false;
         }
 
-        $result = proc_terminate($this->process, $signal);
+        $terminated = proc_terminate($this->process, $signal);
 
         $this->updateStatus();
 
-        return $result;
+        return $terminated;
     }
 
     /**
@@ -205,7 +202,7 @@ class ShellRunner implements IteratorAggregate
     /**
      * @return ShellStatus
      */
-    public function updateStatus(): ShellStatus
+    protected function updateStatus(): ShellStatus
     {
         $status = $this->status;
 
