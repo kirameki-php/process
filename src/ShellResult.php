@@ -35,7 +35,7 @@ readonly class ShellResult
      */
     public function didTimeout(): bool
     {
-        return $this->exitCode === ExitCode::TIMEOUT;
+        return $this->exitCode === ExitCode::TIMED_OUT;
     }
 
     /**

@@ -266,13 +266,7 @@ class ShellRunner implements IteratorAggregate
         }
 
         $callback = $this->onFailure ?? static function(int $exitCode): bool {
-            return in_array($exitCode, [
-                ExitCode::GENERAL_ERROR,
-                ExitCode::COMMAND_NOT_FOUND,
-                ExitCode::TIMEOUT,
-                ExitCode::SIGSEGV,
-                ExitCode::SIGKILL,
-            ], true);
+            return in_array($exitCode, ExitCode::defaultFailureCodes(), true);
         };
 
         if ($callback($exitCode, $this->result)) {
