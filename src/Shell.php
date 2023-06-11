@@ -7,6 +7,7 @@ use Kirameki\Core\Exceptions\RuntimeException;
 use Kirameki\Stream\FileStream;
 use function array_keys;
 use function array_map;
+use function array_merge;
 use function getcwd;
 use function in_array;
 use function proc_open;
@@ -17,16 +18,13 @@ use const SIGTERM;
  */
 class Shell
 {
-    public const DEFAULT_TIMEOUT_SIGNAL = SIGTERM;
-    public const DEFAULT_TIMEOUT_KILL_AFTER_SEC = 10.0;
-    public const DEFAULT_TERM_SIGNAL = SIGTERM;
-
     /**
      * @param string|array<int, string> $command
      * @param string|null $directory
      * @param array<string, string>|null $envs
      * @param TimeoutInfo|null $timeout
      * @param int $termSignal
+     * @param array<int, int> $allowedExitCodes,
      * @param Closure(int): bool|null $onFailure
      * @param FileStream|null $stdout
      * @param FileStream|null $stderr
@@ -37,6 +35,7 @@ class Shell
         protected ?array $envs = null,
         protected ?TimeoutInfo $timeout = null,
         protected ?int $termSignal = null,
+        protected array $allowedExitCodes = [],
         protected ?Closure $onFailure = null,
         protected ?FileStream $stdout = null,
         protected ?FileStream $stderr = null,
@@ -80,8 +79,8 @@ class Shell
      */
     public function timeout(
         ?float $durationSeconds,
-        int $signal = self::DEFAULT_TIMEOUT_SIGNAL,
-        ?float $killAfterSeconds = self::DEFAULT_TIMEOUT_KILL_AFTER_SEC,
+        int $signal = SIGTERM,
+        ?float $killAfterSeconds = 10.0,
     ): static {
         $this->timeout = ($durationSeconds !== null)
             ? new TimeoutInfo($durationSeconds, $signal, $killAfterSeconds)
@@ -127,6 +126,16 @@ class Shell
     public function stderr(?FileStream $stream): static
     {
         $this->stderr = $stream;
+        return $this;
+    }
+
+    /**
+     * @param array<int, int> $codes
+     * @return $this
+     */
+    public function allowedExitCodes(array $codes): static
+    {
+        $this->allowedExitCodes = $codes;
         return $this;
     }
 
@@ -195,7 +204,8 @@ class Shell
             $this->directory ?? (string) getcwd(),
             $this->envs,
             $this->timeout,
-            $this->termSignal ?? self::DEFAULT_TERM_SIGNAL,
+            $this->termSignal ?? SIGTERM,
+            [...[0], ...$this->allowedExitCodes],
         );
     }
 }

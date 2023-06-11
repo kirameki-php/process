@@ -10,10 +10,10 @@ use Kirameki\Process\Exceptions\CommandFailedException;
 use Kirameki\Stream\FileStream;
 use Traversable;
 use function dump;
+use function in_array;
 use function is_resource;
 use function proc_close;
 use function proc_terminate;
-use function stat;
 use function stream_get_contents;
 use function stream_select;
 use function stream_set_blocking;
@@ -64,16 +64,16 @@ class ShellRunner implements IteratorAggregate
     public function getIterator(): Traversable
     {
         $read = [$this->pipes[1], $this->pipes[2]];
-        $write = [$this->process];
+        $write = [];
         $except = [];
         while($this->isRunning()) {
             $count = stream_select($read, $write, $except, 60);
             if ($count > 0) {
                 if (($stdout = (string) $this->readStdout()) !== '') {
-                    yield $stdout;
+                    yield 1 => $stdout;
                 }
                 if (($stderr = (string) $this->readStderr()) !== '') {
-                    yield $stderr;
+                    yield 2 => $stderr;
                 }
             }
         }
@@ -273,7 +273,7 @@ class ShellRunner implements IteratorAggregate
     {
         $this->result = $this->buildResult($code);
 
-        if ($code === 0) {
+        if (in_array($code, $this->info->allowedExitCodes, true)) {
             return;
         }
 

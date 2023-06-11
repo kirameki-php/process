@@ -1,5 +1,7 @@
 #!/bin/bash -eux
 
+echo "Hello World!"
+
 sleep 1
 
 i=0

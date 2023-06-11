@@ -9,8 +9,6 @@ use function proc_get_status;
 use function proc_open;
 use function sleep;
 use function usleep;
-use const SIGCONT;
-use const SIGSTOP;
 
 final class ProcessTest extends TestCase
 {
@@ -20,6 +18,10 @@ final class ProcessTest extends TestCase
             $process = Shell::command(['sh', 'test.sh'])
 //                ->timeout(0.1)
                 ->start();
+
+            foreach ($process as $fd => $stdio) {
+                dump($stdio);
+            }
 
             while ($process->isRunning()) {
                 $out = $process->readStdout();

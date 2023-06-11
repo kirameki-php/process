@@ -6,6 +6,7 @@ use function array_merge;
 use function implode;
 use function is_array;
 use function sprintf;
+use const SIGTERM;
 
 readonly class ShellInfo
 {
@@ -15,6 +16,7 @@ readonly class ShellInfo
      * @param array<string, string>|null $envs
      * @param TimeoutInfo|null $timeout
      * @param int $termSignal
+     * @param array<int, int> $allowedExitCodes,
      */
     public function __construct(
         public string|array $command,
@@ -22,6 +24,7 @@ readonly class ShellInfo
         public ?array $envs,
         public ?TimeoutInfo $timeout,
         public int $termSignal,
+        public array $allowedExitCodes,
     ) {
     }
 
@@ -52,7 +55,7 @@ readonly class ShellInfo
 
         $command = ['timeout'];
 
-        if ($timeout->signal !== TimeoutInfo::DEFAULT_SIGNAL) {
+        if ($timeout->signal !== SIGTERM) {
             $command[] = '--signal';
             $command[] = (string) $timeout->signal;
         }
