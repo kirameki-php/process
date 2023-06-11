@@ -5,7 +5,12 @@ namespace Tests\Kirameki\Process;
 use Kirameki\Core\Testing\TestCase;
 use Kirameki\Process\Shell;
 use function dump;
+use function proc_get_status;
+use function proc_open;
+use function sleep;
 use function usleep;
+use const SIGCONT;
+use const SIGSTOP;
 
 final class ProcessTest extends TestCase
 {
@@ -13,7 +18,7 @@ final class ProcessTest extends TestCase
     {
         {
             $process = Shell::command(['sh', 'test.sh'])
-                ->timeout(0.1)
+//                ->timeout(0.1)
                 ->start();
 
             while ($process->isRunning()) {
@@ -24,14 +29,13 @@ final class ProcessTest extends TestCase
                 usleep(10_000);
             }
 
-            dump('done');
-
             usleep(1000);
 
             $out = $process->readStdout();
             dump($out);
 
-            dump($process->wait());
+            $result = $process->wait();
+            dump($result);
         }
     }
 }

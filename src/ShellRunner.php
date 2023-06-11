@@ -4,55 +4,47 @@ namespace Kirameki\Process;
 
 use Closure;
 use InvalidArgumentException;
+use IteratorAggregate;
 use Kirameki\Core\Exceptions\UnreachableException;
 use Kirameki\Process\Exceptions\CommandFailedException;
 use Kirameki\Process\Exceptions\CommandTimeoutException;
 use Kirameki\Stream\FileStream;
-use function dump;
+use Traversable;
 use function is_resource;
 use function proc_close;
-use function proc_get_status;
 use function proc_terminate;
 use function stream_get_contents;
+use function stream_select;
 use function stream_set_blocking;
 use function strlen;
 use function usleep;
 use const SEEK_CUR;
 use const SIGKILL;
 
-class ShellRunner
+/**
+ * @implements IteratorAggregate<int, string>
+ */
+class ShellRunner implements IteratorAggregate
 {
-    /**
-     * @var array{
-     *     command: string,
-     *     pid: int,
-     *     running: bool,
-     *     signaled: bool,
-     *     stopped: bool,
-     *     exitcode: int,
-     *     termsig: int,
-     *     stopsig: int,
-     *  }
-     */
-    protected array $status;
-
     /**
      * @param resource $process
      * @param ShellInfo $info
+     * @param ShellStatus $status
      * @param array<int, resource> $pipes
-     * @param Closure(int): bool|null $exitCallback
      * @param FileStream $stdout
      * @param FileStream $stderr
+     * @param Closure(int): bool|null $onFailure
      * @param ShellResult|null $result
      */
     public function __construct(
         protected $process,
         public readonly ShellInfo $info,
+        protected readonly ShellStatus $status,
         protected readonly array $pipes,
-        protected readonly ?Closure $exitCallback,
         protected readonly FileStream $stdout,
         protected readonly FileStream $stderr,
-        protected ?ShellResult $result = null
+        protected readonly ?Closure $onFailure,
+        protected ?ShellResult $result = null,
     ) {
         $this->updateStatus();
     }
@@ -63,6 +55,27 @@ class ShellRunner
     public function __destruct()
     {
         $this->signal(SIGKILL);
+    }
+
+    /**
+     * @return Traversable<int, string>
+     */
+    public function getIterator(): Traversable
+    {
+        $read = [$this->stdout->getResource(), $this->stderr->getResource()];
+        $write = [];
+        $except = [];
+        while($this->isRunning()) {
+            $count = stream_select($read, $write, $except, 60);
+            if ($count > 0) {
+                if (($stdout = $this->stdout->readToEnd()) !== '') {
+                    yield $stdout;
+                }
+                if (($stderr = $this->stderr->readToEnd()) !== '') {
+                    yield $stderr;
+                }
+            }
+        }
     }
 
     /**
@@ -123,8 +136,12 @@ class ShellRunner
     /**
      * @return ShellResult
      */
-    public function close(): ShellResult
+    public function kill(): ShellResult
     {
+        if ($this->isDone()) {
+            return $this->getResult();
+        }
+
         $this->signal(SIGKILL);
 
         while ($this->isRunning()) {
@@ -157,7 +174,7 @@ class ShellRunner
      */
     public function getPid(): int
     {
-        return $this->status['pid'];
+        return $this->status->pid;
     }
 
     /**
@@ -165,7 +182,7 @@ class ShellRunner
      */
     public function isRunning(): bool
     {
-        return $this->updateStatus()['running'];
+        return $this->updateStatus()->exitCode === null;
     }
 
     /**
@@ -181,56 +198,25 @@ class ShellRunner
      */
     public function isStopped(): bool
     {
-        return $this->updateStatus()['stopped'];
+        return $this->updateStatus()->stopped;
     }
 
     /**
-     * @return array{
-     *     command: string,
-     *     pid: int,
-     *     running: bool,
-     *     signaled: bool,
-     *     stopped: bool,
-     *     exitcode: int,
-     *     termsig: int,
-     *     stopsig: int,
-     *  }
+     * @return ShellStatus
      */
-    protected function updateStatus(): array
+    public function updateStatus(): ShellStatus
     {
-        if (!is_resource($this->process)) {
-            return $this->status;
+        $status = $this->status;
+
+        if ($status->update()) {
+            return $status;
         }
 
-        $this->status = proc_get_status($this->process);
+        $this->closeProcess();
 
-        $exitCode = $this->status['exitcode'];
+        $this->handleExit($status->exitCode ?? -1);
 
-        if (!$this->status['running']) {
-            // Read remaining output from the pipes before calling
-            // `proc_close(...)`. Otherwise unread data will be lost.
-            // The output that has been read here is not read by the
-            // user yet, so we seek back to the read position.
-            foreach ([1 => $this->stdout, 2 => $this->stderr] as $fd => $stdio) {
-                $output = (string) $this->readPipe($fd);
-                $stdio->seek(-strlen($output), SEEK_CUR);
-            }
-
-            proc_close($this->process);
-        }
-
-        if ($exitCode >= 0) {
-            if ($exitCode === 124) {
-                throw new CommandTimeoutException($this->info->command, $exitCode, [
-                    'shell' => $this,
-                ]);
-            }
-            $callback = $this->exitCallback ?? $this->handleExit(...);
-            $callback($exitCode);
-            $this->buildResult($exitCode);
-        }
-
-        return $this->status;
+        return $status;
     }
 
     /**
@@ -266,24 +252,48 @@ class ShellRunner
         return $output;
     }
 
+    protected function closeProcess(): void
+    {
+        // Read remaining output from the pipes before calling
+        // `proc_close(...)`. Otherwise unread data will be lost.
+        // The output that has been read here is not read by the
+        // user yet, so we seek back to the read position.
+        foreach ([1 => $this->stdout, 2 => $this->stderr] as $fd => $stdio) {
+            $output = (string) $this->readPipe($fd);
+            $stdio->seek(-strlen($output), SEEK_CUR);
+        }
+        proc_close($this->process);
+    }
+
     protected function handleExit(int $code): void
     {
+        $this->result = $this->buildResult($code);
+
         if ($code === 0) {
             return;
         }
-        throw new CommandFailedException($this->info->command, $code, [
-            'shell' => $this,
-        ]);
+
+        $callback = $this->onFailure ?? static fn() => true;
+
+        if ($callback($code)) {
+            throw new CommandFailedException($this->info->command, $code, [
+                'shell' => $this,
+            ]);
+        }
     }
 
+    /**
+     * @param int $exitCode
+     * @return ShellResult
+     */
     protected function buildResult(int $exitCode): ShellResult
     {
         return new ShellResult(
             $this->info,
-            $this->status,
+            $this->getPid(),
+            $exitCode,
             $this->stdout,
             $this->stderr,
-            $exitCode,
         );
     }
 

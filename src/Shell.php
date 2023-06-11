@@ -7,12 +7,9 @@ use Kirameki\Core\Exceptions\RuntimeException;
 use Kirameki\Stream\FileStream;
 use function array_keys;
 use function array_map;
-use function array_merge;
 use function getcwd;
-use function implode;
-use function is_array;
+use function in_array;
 use function proc_open;
-use function sprintf;
 use const SIGTERM;
 
 /**
@@ -20,6 +17,8 @@ use const SIGTERM;
  */
 class Shell
 {
+    public const DEFAULT_TIMEOUT_SIGNAL = SIGTERM;
+    public const DEFAULT_TIMEOUT_KILL_AFTER_SEC = 10.0;
     public const DEFAULT_TERM_SIGNAL = SIGTERM;
 
     /**
@@ -28,7 +27,7 @@ class Shell
      * @param array<string, string>|null $envs
      * @param TimeoutInfo|null $timeout
      * @param int $termSignal
-     * @param Closure(int): bool|null $exitCallback
+     * @param Closure(int): bool|null $onFailure
      * @param FileStream|null $stdout
      * @param FileStream|null $stderr
      */
@@ -38,7 +37,7 @@ class Shell
         protected ?array $envs = null,
         protected ?TimeoutInfo $timeout = null,
         protected ?int $termSignal = null,
-        protected ?Closure $exitCallback = null,
+        protected ?Closure $onFailure = null,
         protected ?FileStream $stdout = null,
         protected ?FileStream $stderr = null,
     ) {
@@ -81,8 +80,8 @@ class Shell
      */
     public function timeout(
         ?float $durationSeconds,
-        int $signal = TimeoutInfo::DEFAULT_SIGNAL,
-        ?float $killAfterSeconds = TimeoutInfo::DEFAULT_KILL_AFTER_SEC,
+        int $signal = self::DEFAULT_TIMEOUT_SIGNAL,
+        ?float $killAfterSeconds = self::DEFAULT_TIMEOUT_KILL_AFTER_SEC,
     ): static {
         $this->timeout = ($durationSeconds !== null)
             ? new TimeoutInfo($durationSeconds, $signal, $killAfterSeconds)
@@ -135,9 +134,9 @@ class Shell
      * @param Closure(int): bool $callback
      * @return $this
      */
-    public function onExit(Closure $callback): static
+    public function onFailure(Closure $callback): static
     {
-        $this->exitCallback = $callback;
+        $this->onFailure = $callback;
         return $this;
     }
 
@@ -169,7 +168,7 @@ class Shell
         if ($process === false) {
             throw new RuntimeException('Failed to start process.', [
                 'info' => $info,
-                'exitCallback' => $this->exitCallback,
+                'exitCallback' => $this->onFailure,
                 'stdout' => $stdout,
                 'stderr' => $stderr,
             ]);
@@ -178,10 +177,11 @@ class Shell
         return new ShellRunner(
             $process,
             $info,
+            new ShellStatus($process),
             $pipes,
-            $this->exitCallback,
             $stdout,
             $stderr,
+            $this->onFailure,
         );
     }
 

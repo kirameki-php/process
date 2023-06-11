@@ -1,6 +1,6 @@
 #!/bin/bash -eux
 
-sleep 10
+sleep 1
 
 i=0
 while [ $i -ne 100 ]
@@ -10,4 +10,4 @@ do
   usleep 100
 done
 
-exit 2
+# exit 2

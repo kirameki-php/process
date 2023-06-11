@@ -8,17 +8,17 @@ readonly class ShellResult
 {
     /**
      * @param ShellInfo $info
-     * @param array{ pid: int } $status
+     * @param int $pid
+     * @param int $exitCode
      * @param FileStream $stdout
      * @param FileStream $stderr
-     * @param int $exitCode
      */
     public function __construct(
         public ShellInfo $info,
-        protected array $status,
+        public int $pid,
+        public int $exitCode,
         protected FileStream $stdout,
         protected FileStream $stderr,
-        public int $exitCode,
     ) {
     }
 
@@ -36,5 +36,41 @@ readonly class ShellResult
     public function didTimeout(): bool
     {
         return $this->exitCode === 124;
+    }
+
+    /**
+     * @return string
+     */
+    public function readStdout(): string
+    {
+        return $this->stdout->readToEnd();
+    }
+
+    /**
+     * @return string
+     */
+    public function readStderr(): string
+    {
+        return $this->stderr->readToEnd();
+    }
+
+    /**
+     * @return string
+     */
+    public function getStdoutOutput(): string
+    {
+        $stdout = $this->stdout;
+        $stdout->seek(0);
+        return $stdout->readToEnd();
+    }
+
+    /**
+     * @return string
+     */
+    public function getStderrOutput(): string
+    {
+        $stderr = $this->stderr;
+        $stderr->seek(0);
+        return $stderr->readToEnd();
     }
 }
