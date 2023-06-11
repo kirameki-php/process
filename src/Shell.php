@@ -24,7 +24,6 @@ class Shell
      * @param array<string, string>|null $envs
      * @param TimeoutInfo|null $timeout
      * @param int $termSignal
-     * @param array<int, int> $allowedExitCodes,
      * @param Closure(int): bool|null $onFailure
      * @param FileStream|null $stdout
      * @param FileStream|null $stderr
@@ -35,7 +34,6 @@ class Shell
         protected ?array $envs = null,
         protected ?TimeoutInfo $timeout = null,
         protected ?int $termSignal = null,
-        protected array $allowedExitCodes = [],
         protected ?Closure $onFailure = null,
         protected ?FileStream $stdout = null,
         protected ?FileStream $stderr = null,
@@ -130,16 +128,6 @@ class Shell
     }
 
     /**
-     * @param array<int, int> $codes
-     * @return $this
-     */
-    public function allowedExitCodes(array $codes): static
-    {
-        $this->allowedExitCodes = $codes;
-        return $this;
-    }
-
-    /**
      * @param Closure(int): bool $callback
      * @return $this
      */
@@ -205,7 +193,6 @@ class Shell
             $this->envs,
             $this->timeout,
             $this->termSignal ?? SIGTERM,
-            [...[0], ...$this->allowedExitCodes],
         );
     }
 }

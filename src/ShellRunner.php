@@ -66,7 +66,7 @@ class ShellRunner implements IteratorAggregate
         $write = [];
         $except = [];
         while($this->isRunning()) {
-            $count = stream_select($read, $write, $except, 60);
+            $count = stream_select($read, $write, $except, null);
             if ($count > 0) {
                 if (($stdout = (string) $this->readStdout()) !== '') {
                     yield 1 => $stdout;
@@ -254,21 +254,29 @@ class ShellRunner implements IteratorAggregate
     }
 
     /**
-     * @param int $code
+     * @param int $exitCode
      * @return void
      */
-    protected function handleExit(int $code): void
+    protected function handleExit(int $exitCode): void
     {
-        $this->result = $this->buildResult($code);
+        $this->result = $this->buildResult($exitCode);
 
-        if (in_array($code, $this->info->allowedExitCodes, true)) {
+        if ($exitCode === 0) {
             return;
         }
 
-        $callback = $this->onFailure ?? static fn() => true;
+        $callback = $this->onFailure ?? static function(int $exitCode): bool {
+            return in_array($exitCode, [
+                ExitCode::GENERAL_ERROR,
+                ExitCode::COMMAND_NOT_FOUND,
+                ExitCode::TIMEOUT,
+                ExitCode::SIGSEGV,
+                ExitCode::SIGKILL,
+            ], true);
+        };
 
-        if ($callback($code, $this->result)) {
-            throw new CommandFailedException($this->info->command, $code, [
+        if ($callback($exitCode, $this->result)) {
+            throw new CommandFailedException($this->info->command, $exitCode, [
                 'shell' => $this,
             ]);
         }

@@ -16,7 +16,6 @@ readonly class ShellInfo
      * @param array<string, string>|null $envs
      * @param TimeoutInfo|null $timeout
      * @param int $termSignal
-     * @param array<int, int> $allowedExitCodes,
      */
     public function __construct(
         public string|array $command,
@@ -24,7 +23,6 @@ readonly class ShellInfo
         public ?array $envs,
         public ?TimeoutInfo $timeout,
         public int $termSignal,
-        public array $allowedExitCodes,
     ) {
     }
 

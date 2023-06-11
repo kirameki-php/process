@@ -2,7 +2,6 @@
 
 namespace Kirameki\Process;
 
-use function is_resource;
 use function proc_get_status;
 
 class ShellStatus

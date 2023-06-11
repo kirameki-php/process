@@ -27,7 +27,7 @@ readonly class ShellResult
      */
     public function wasSuccessful(): bool
     {
-        return $this->exitCode === 0;
+        return $this->exitCode === ExitCode::SUCCESS;
     }
 
     /**
@@ -35,7 +35,7 @@ readonly class ShellResult
      */
     public function didTimeout(): bool
     {
-        return $this->exitCode === 124;
+        return $this->exitCode === ExitCode::TIMEOUT;
     }
 
     /**
