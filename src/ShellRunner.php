@@ -33,7 +33,7 @@ class ShellRunner implements IteratorAggregate
      * @param array<int, resource> $pipes
      * @param FileStream $stdout
      * @param FileStream $stderr
-     * @param Closure(int): bool|null $onFailure
+     * @param Closure(int, ShellResult): bool|null $onFailure
      * @param ShellResult|null $result
      */
     public function __construct(
@@ -98,55 +98,39 @@ class ShellRunner implements IteratorAggregate
      */
     public function signal(int $signal): bool
     {
-        if ($this->isDone()) {
-            return false;
+        if ($this->isRunning()) {
+            proc_terminate($this->process, $signal);
+            $this->updateStatus();
+            return true;
         }
-
-        $terminated = proc_terminate($this->process, $signal);
-
-        $this->updateStatus();
-
-        return $terminated;
+        return false;
     }
 
     /**
      * @param float|null $timeoutSeconds
-     * @return ShellResult
+     * @return bool
      */
-    public function terminate(?float $timeoutSeconds = null): ShellResult
+    public function terminate(?float $timeoutSeconds = null): bool
     {
-        if ($this->isDone()) {
-            return $this->getResult();
-        }
+        $signaled = $this->signal($this->info->termSignal);
 
-        $this->signal($this->info->termSignal);
-
-        if ($timeoutSeconds !== null) {
+        if ($signaled && $timeoutSeconds !== null) {
             usleep((int) ($timeoutSeconds / 1e-6));
+
             if ($this->isRunning()) {
                 $this->signal(SIGKILL);
             }
         }
 
-        return $this->getResult();
+        return $signaled;
     }
 
     /**
-     * @return ShellResult
+     * @return bool
      */
-    public function kill(): ShellResult
+    public function kill(): bool
     {
-        if ($this->isDone()) {
-            return $this->getResult();
-        }
-
-        $this->signal(SIGKILL);
-
-        while ($this->isRunning()) {
-            usleep(100);
-        }
-
-        return $this->getResult();
+        return $this->signal(SIGKILL);
     }
 
     /**
@@ -254,6 +238,9 @@ class ShellRunner implements IteratorAggregate
         return $output;
     }
 
+    /**
+     * @return void
+     */
     protected function drainPipes(): void
     {
         // Read remaining output from the pipes before calling
@@ -266,6 +253,10 @@ class ShellRunner implements IteratorAggregate
         }
     }
 
+    /**
+     * @param int $code
+     * @return void
+     */
     protected function handleExit(int $code): void
     {
         $this->result = $this->buildResult($code);
@@ -276,7 +267,7 @@ class ShellRunner implements IteratorAggregate
 
         $callback = $this->onFailure ?? static fn() => true;
 
-        if ($callback($code)) {
+        if ($callback($code, $this->result)) {
             throw new CommandFailedException($this->info->command, $code, [
                 'shell' => $this,
             ]);
