@@ -1,29 +1,13 @@
-<?php declare(strict_types=1);
+<?php
 
-namespace Tests\Kirameki\Process;
+require __DIR__.'/vendor/autoload.php';
 
-use Kirameki\Core\Signal;
-use Kirameki\Core\Testing\TestCase;
 use Kirameki\Process\Shell;
-use function dump;
-use function sleep;
-use function usleep;
-use function var_dump;
-use const SIGCHLD;
-use const SIGCLD;
 
-final class ProcessTest extends TestCase
-{
-    public function test_instantiate(): void
+$class = new class {
+    public function __construct()
     {
-        $process = null;
-
-        Signal::handle(SIGCHLD, function() use (&$process) {
-            dump('SIGCHLD');
-        });
-
         $process = Shell::command(['sh', 'test.sh'])
-//            ->timeout(0.1)
             ->start();
 
         foreach ($process as $fd => $stdio) {
@@ -46,4 +30,4 @@ final class ProcessTest extends TestCase
         $result = $process->wait();
         dump($result);
     }
-}
+};

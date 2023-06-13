@@ -6,12 +6,16 @@ use Closure;
 use InvalidArgumentException;
 use IteratorAggregate;
 use Kirameki\Core\Exceptions\UnreachableException;
+use Kirameki\Core\Signal;
+use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\CommandFailedException;
 use Kirameki\Stream\FileStream;
 use Traversable;
+use function dump;
 use function in_array;
 use function is_resource;
 use function proc_close;
+use function proc_get_status;
 use function proc_terminate;
 use function stream_get_contents;
 use function stream_select;
@@ -27,9 +31,13 @@ use const SIGKILL;
 class ShellRunner implements IteratorAggregate
 {
     /**
+     * @var int
+     */
+    public readonly int $pid;
+
+    /**
      * @param resource $process
      * @param ShellInfo $info
-     * @param ShellStatus $status
      * @param array<int, resource> $pipes
      * @param FileStream $stdout
      * @param FileStream $stderr
@@ -39,14 +47,20 @@ class ShellRunner implements IteratorAggregate
     public function __construct(
         protected $process,
         public readonly ShellInfo $info,
-        protected readonly ShellStatus $status,
         protected readonly array $pipes,
         protected readonly FileStream $stdout,
         protected readonly FileStream $stderr,
         protected readonly ?Closure $onFailure,
         protected ?ShellResult $result = null,
     ) {
-        $this->updateStatus();
+        $this->pid = proc_get_status($this->process)['pid'];
+
+        Signal::handle(SIGCHLD, function(SignalEvent $event) {
+            if ($event->info['pid'] === $this->pid) {
+                $this->handleSigChld($event->info['status']);
+                $event->evictCallback();
+            }
+        });
     }
 
     /**
@@ -100,7 +114,6 @@ class ShellRunner implements IteratorAggregate
     {
         if ($this->isRunning()) {
             proc_terminate($this->process, $signal);
-            $this->updateStatus();
             return true;
         }
         return false;
@@ -126,14 +139,6 @@ class ShellRunner implements IteratorAggregate
     }
 
     /**
-     * @return bool
-     */
-    public function kill(): bool
-    {
-        return $this->signal(SIGKILL);
-    }
-
-    /**
      * @param bool $blocking
      * @return string|null
      */
@@ -152,19 +157,11 @@ class ShellRunner implements IteratorAggregate
     }
 
     /**
-     * @return int
-     */
-    public function getPid(): int
-    {
-        return $this->status->pid;
-    }
-
-    /**
      * @return bool
      */
     public function isRunning(): bool
     {
-        return $this->updateStatus()->exitCode === null;
+        return is_resource($this->process);
     }
 
     /**
@@ -180,29 +177,41 @@ class ShellRunner implements IteratorAggregate
      */
     public function isStopped(): bool
     {
-        return $this->updateStatus()->stopped;
+        return proc_get_status($this->process)['stopped'];
     }
 
     /**
-     * @return ShellStatus
+     * @param int $exitCode
+     * @return void
      */
-    protected function updateStatus(): ShellStatus
+    protected function handleSigChld(int $exitCode): void
     {
-        $status = $this->status;
+        $this->drainPipes();
+        proc_close($this->process);
+        $this->handleExit($exitCode);
+    }
 
-        if (!is_resource($this->process)) {
-            return $status;
+    /**
+     * @param int $exitCode
+     * @return void
+     */
+    protected function handleExit(int $exitCode): void
+    {
+        $this->result = $this->buildResult($exitCode);
+
+        if ($exitCode === 0) {
+            return;
         }
 
-        $status->update();
+        $callback = $this->onFailure ?? static function(int $exitCode): bool {
+            return in_array($exitCode, ExitCode::defaultFailureCodes(), true);
+        };
 
-        if ($status->exitCode !== null) {
-            $this->drainPipes();
-            proc_close($this->process);
-            $this->handleExit($status->exitCode);
+        if ($callback($exitCode, $this->result)) {
+            throw new CommandFailedException($this->info->command, $exitCode, [
+                'shell' => $this,
+            ]);
         }
-
-        return $status;
     }
 
     /**
@@ -255,36 +264,13 @@ class ShellRunner implements IteratorAggregate
 
     /**
      * @param int $exitCode
-     * @return void
-     */
-    protected function handleExit(int $exitCode): void
-    {
-        $this->result = $this->buildResult($exitCode);
-
-        if ($exitCode === 0) {
-            return;
-        }
-
-        $callback = $this->onFailure ?? static function(int $exitCode): bool {
-            return in_array($exitCode, ExitCode::defaultFailureCodes(), true);
-        };
-
-        if ($callback($exitCode, $this->result)) {
-            throw new CommandFailedException($this->info->command, $exitCode, [
-                'shell' => $this,
-            ]);
-        }
-    }
-
-    /**
-     * @param int $exitCode
      * @return ShellResult
      */
     protected function buildResult(int $exitCode): ShellResult
     {
         return new ShellResult(
             $this->info,
-            $this->getPid(),
+            $this->pid,
             $exitCode,
             $this->stdout,
             $this->stderr,

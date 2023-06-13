@@ -7,9 +7,7 @@ use Kirameki\Core\Exceptions\RuntimeException;
 use Kirameki\Stream\FileStream;
 use function array_keys;
 use function array_map;
-use function array_merge;
 use function getcwd;
-use function in_array;
 use function proc_open;
 use const SIGTERM;
 
@@ -174,7 +172,6 @@ class Shell
         return new ShellRunner(
             $process,
             $info,
-            new ShellStatus($process),
             $pipes,
             $stdout,
             $stderr,

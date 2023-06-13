@@ -2,7 +2,7 @@
 
 echo "Hello World!"
 
-sleep 1
+#sleep 10
 
 i=0
 while [ $i -ne 100 ]
@@ -12,4 +12,4 @@ do
   usleep 100
 done
 
-# exit 2
+exit 2
