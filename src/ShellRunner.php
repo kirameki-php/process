@@ -41,8 +41,7 @@ class ShellRunner implements IteratorAggregate
      * @param resource $process
      * @param ShellInfo $info
      * @param array<int, resource> $pipes
-     * @param FileStream $stdout
-     * @param FileStream $stderr
+     * @param array<int, FileStream> $stdios
      * @param Closure(int, ShellResult): bool|null $onFailure
      * @param ShellResult|null $result
      */
@@ -50,8 +49,7 @@ class ShellRunner implements IteratorAggregate
         protected $process,
         public readonly ShellInfo $info,
         protected readonly array $pipes,
-        protected readonly FileStream $stdout,
-        protected readonly FileStream $stderr,
+        protected readonly array $stdios,
         protected readonly ?Closure $onFailure,
         protected ?ShellResult $result = null,
     ) {
@@ -227,23 +225,21 @@ class ShellRunner implements IteratorAggregate
      * @param int $fd
      * @return string|null
      */
-    protected function readPipe(int $fd): ?string {
-        $stdio = match ($fd) {
-            1 => $this->stdout,
-            2 => $this->stderr,
-            default => throw new InvalidArgumentException("Invalid file descriptor: $fd"),
-        };
+    protected function readPipe(int $fd): ?string
+    {
+        $pipe = $this->pipes[$fd];
+        $stdio = $this->stdios[$fd];
 
         // If the pipes are closed (They close when the process closes)
         // check if there are any output to be read from `$stdio`,
         // otherwise return **null**.
-        if (!is_resource($this->pipes[$fd])) {
+        if (!is_resource($pipe)) {
             return $stdio->isNotEof()
                 ? $stdio->readToEnd()
                 : null;
         }
 
-        $output = (string) stream_get_contents($this->pipes[$fd]);
+        $output = (string) stream_get_contents($pipe);
         $stdio->write($output);
         return $output;
     }
@@ -257,7 +253,7 @@ class ShellRunner implements IteratorAggregate
         // `proc_close(...)`. Otherwise unread data will be lost.
         // The output that has been read here is not read by the
         // user yet, so we seek back to the read position.
-        foreach ([1 => $this->stdout, 2 => $this->stderr] as $fd => $stdio) {
+        foreach ($this->stdios as $fd => $stdio) {
             $output = (string) $this->readPipe($fd);
             $stdio->seek(-strlen($output), SEEK_CUR);
         }
@@ -273,8 +269,8 @@ class ShellRunner implements IteratorAggregate
             $this->info,
             $this->pid,
             $exitCode,
-            $this->stdout,
-            $this->stderr,
+            $this->stdios[1],
+            $this->stdios[2],
         );
     }
 

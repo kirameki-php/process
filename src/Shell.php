@@ -149,8 +149,11 @@ class Shell
 
         $fdSpec = [["pipe", "r"], ["pipe", "w"], ["pipe", "w"]];
         $memoryLimit = 1024 * 1024;
-        $stdout = $this->stdout ?? new FileStream("php://temp/maxmemory:{$memoryLimit}");
-        $stderr = $this->stderr ?? new FileStream("php://temp/maxmemory:{$memoryLimit}");
+
+        $stdios = [
+            1 => $this->stdout ?? new FileStream("php://temp/maxmemory:{$memoryLimit}"),
+            2 => $this->stderr ?? new FileStream("php://temp/maxmemory:{$memoryLimit}"),
+        ];
 
         $process = proc_open(
             $info->getFullCommand(),
@@ -163,9 +166,6 @@ class Shell
         if ($process === false) {
             throw new RuntimeException('Failed to start process.', [
                 'info' => $info,
-                'exitCallback' => $this->onFailure,
-                'stdout' => $stdout,
-                'stderr' => $stderr,
             ]);
         }
 
@@ -173,8 +173,7 @@ class Shell
             $process,
             $info,
             $pipes,
-            $stdout,
-            $stderr,
+            $stdios,
             $this->onFailure,
         );
     }
