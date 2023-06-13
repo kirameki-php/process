@@ -22,7 +22,12 @@ $class = new class {
             usleep(10_000);
         }
 
-        usleep(1000);
+        usleep(10000);
+
+        $out = $process->readStdout();
+        dump($out);
+
+        usleep(10000);
 
         $out = $process->readStdout();
         dump($out);

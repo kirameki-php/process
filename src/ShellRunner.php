@@ -17,7 +17,9 @@ use function is_resource;
 use function proc_close;
 use function proc_get_status;
 use function proc_terminate;
+use function sleep;
 use function stream_get_contents;
+use function stream_get_meta_data;
 use function stream_select;
 use function stream_set_blocking;
 use function strlen;
@@ -54,6 +56,12 @@ class ShellRunner implements IteratorAggregate
         protected ?ShellResult $result = null,
     ) {
         $this->pid = proc_get_status($this->process)['pid'];
+
+        foreach ($this->pipes as $pipe) {
+            if (is_resource($pipe)) {
+                stream_set_blocking($pipe, false);
+            }
+        }
 
         Signal::handle(SIGCHLD, function(SignalEvent $event) {
             if ($event->info['pid'] === $this->pid) {
@@ -139,21 +147,19 @@ class ShellRunner implements IteratorAggregate
     }
 
     /**
-     * @param bool $blocking
      * @return string|null
      */
-    public function readStdout(bool $blocking = false): ?string
+    public function readStdout(): ?string
     {
-        return $this->readPipe(1, $blocking);
+        return $this->readPipe(1);
     }
 
     /**
-     * @param bool $blocking
      * @return string|null
      */
-    public function readStderr(bool $blocking = false): ?string
+    public function readStderr(): ?string
     {
-        return $this->readPipe(2, $blocking);
+        return $this->readPipe(2);
     }
 
     /**
@@ -186,9 +192,12 @@ class ShellRunner implements IteratorAggregate
      */
     protected function handleSigChld(int $exitCode): void
     {
-        $this->drainPipes();
-        proc_close($this->process);
-        $this->handleExit($exitCode);
+        try {
+            $this->drainPipes();
+            $this->handleExit($exitCode);
+        } finally {
+            proc_close($this->process);
+        }
     }
 
     /**
@@ -216,10 +225,9 @@ class ShellRunner implements IteratorAggregate
 
     /**
      * @param int $fd
-     * @param bool $blocking
      * @return string|null
      */
-    protected function readPipe(int $fd, bool $blocking = false): ?string {
+    protected function readPipe(int $fd): ?string {
         $stdio = match ($fd) {
             1 => $this->stdout,
             2 => $this->stderr,
@@ -230,18 +238,11 @@ class ShellRunner implements IteratorAggregate
         // check if there are any output to be read from `$stdio`,
         // otherwise return **null**.
         if (!is_resource($this->pipes[$fd])) {
-            // The only time `$stdio` is not at EOF is when
-            // 1. `updateStatus` was called
-            // 2. the process (and pipes) was closed in `updateStatus`.
-            // This is because `updateStatus` reads the remaining output from
-            // the pipes before it gets closed (data is lost when closed)
-            // and appends it to the stdio ahead of time.
             return $stdio->isNotEof()
                 ? $stdio->readToEnd()
                 : null;
         }
 
-        stream_set_blocking($this->pipes[$fd], $blocking);
         $output = (string) stream_get_contents($this->pipes[$fd]);
         $stdio->write($output);
         return $output;

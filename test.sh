@@ -5,11 +5,11 @@ echo "Hello World!"
 #sleep 10
 
 i=0
-while [ $i -ne 100 ]
+while [ $i -ne 50 ]
 do
   i=$(($i+1))
   echo "$i"
-  usleep 100
+  usleep 1000
 done
 
-exit 2
+exit 0

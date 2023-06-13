@@ -26,6 +26,10 @@ final class ProcessTest extends TestCase
 //            ->timeout(0.1)
             ->start();
 
+        $process2 = Shell::command(['sh', 'test.sh'])
+//            ->timeout(0.1)
+            ->start();
+
         foreach ($process as $fd => $stdio) {
             dump($stdio);
         }
@@ -45,5 +49,9 @@ final class ProcessTest extends TestCase
 
         $result = $process->wait();
         dump($result);
+
+        $process2->wait();
+
+        sleep(5);
     }
 }
