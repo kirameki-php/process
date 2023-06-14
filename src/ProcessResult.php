@@ -4,17 +4,17 @@ namespace Kirameki\Process;
 
 use Kirameki\Stream\FileStream;
 
-readonly class ShellResult
+readonly class ProcessResult
 {
     /**
-     * @param ShellInfo $info
+     * @param ProcessInfo $info
      * @param int $pid
      * @param int $exitCode
      * @param FileStream $stdout
      * @param FileStream $stderr
      */
     public function __construct(
-        public ShellInfo $info,
+        public ProcessInfo $info,
         public int $pid,
         public int $exitCode,
         protected FileStream $stdout,

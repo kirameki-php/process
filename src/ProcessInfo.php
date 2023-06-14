@@ -8,7 +8,7 @@ use function is_array;
 use function sprintf;
 use const SIGTERM;
 
-readonly class ShellInfo
+readonly class ProcessInfo
 {
     /**
      * @param string|array<int, string> $command

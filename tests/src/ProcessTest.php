@@ -4,7 +4,7 @@ namespace Tests\Kirameki\Process;
 
 use Kirameki\Core\Signal;
 use Kirameki\Core\Testing\TestCase;
-use Kirameki\Process\Shell;
+use Kirameki\Process\Process;
 use function dump;
 use function sleep;
 use function usleep;
@@ -22,11 +22,11 @@ final class ProcessTest extends TestCase
             dump('SIGCHLD');
         });
 
-        $process = Shell::command(['sh', 'test.sh'])
+        $process = Process::command(['sh', 'test.sh'])
 //            ->timeout(0.1)
             ->start();
 
-        $process2 = Shell::command(['sh', 'test.sh'])
+        $process2 = Process::command(['sh', 'test.sh'])
 //            ->timeout(0.1)
             ->start();
 

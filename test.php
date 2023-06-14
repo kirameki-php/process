@@ -2,12 +2,12 @@
 
 require __DIR__.'/vendor/autoload.php';
 
-use Kirameki\Process\Shell;
+use Kirameki\Process\Process;
 
 $class = new class {
     public function __construct()
     {
-        $process = Shell::command(['sh', 'test.sh'])
+        $process = Process::command(['sh', 'test.sh'])
             ->start();
 
         foreach ($process as $fd => $stdio) {

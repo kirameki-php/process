@@ -11,15 +11,12 @@ use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\CommandFailedException;
 use Kirameki\Stream\FileStream;
 use Traversable;
-use function dump;
 use function in_array;
 use function is_resource;
 use function proc_close;
 use function proc_get_status;
 use function proc_terminate;
-use function sleep;
 use function stream_get_contents;
-use function stream_get_meta_data;
 use function stream_select;
 use function stream_set_blocking;
 use function strlen;
@@ -30,7 +27,7 @@ use const SIGKILL;
 /**
  * @implements IteratorAggregate<int, string>
  */
-class ShellRunner implements IteratorAggregate
+class ProcessRunner implements IteratorAggregate
 {
     /**
      * @var int
@@ -39,19 +36,19 @@ class ShellRunner implements IteratorAggregate
 
     /**
      * @param resource $process
-     * @param ShellInfo $info
+     * @param ProcessInfo $info
      * @param array<int, resource> $pipes
      * @param array<int, FileStream> $stdios
-     * @param Closure(int, ShellResult): bool|null $onFailure
-     * @param ShellResult|null $result
+     * @param Closure(int, ProcessResult): bool|null $onFailure
+     * @param ProcessResult|null $result
      */
     public function __construct(
         protected $process,
-        public readonly ShellInfo $info,
+        public readonly ProcessInfo $info,
         protected readonly array $pipes,
         protected readonly array $stdios,
         protected readonly ?Closure $onFailure,
-        protected ?ShellResult $result = null,
+        protected ?ProcessResult $result = null,
     ) {
         $this->pid = proc_get_status($this->process)['pid'];
 
@@ -101,9 +98,9 @@ class ShellRunner implements IteratorAggregate
     /**
      * @param int $usleep
      * [Optional] Defaults to 10ms.
-     * @return ShellResult
+     * @return ProcessResult
      */
-    public function wait(int $usleep = 10_000): ShellResult
+    public function wait(int $usleep = 10_000): ProcessResult
     {
         while ($this->isRunning()) {
             usleep($usleep);
@@ -261,11 +258,11 @@ class ShellRunner implements IteratorAggregate
 
     /**
      * @param int $exitCode
-     * @return ShellResult
+     * @return ProcessResult
      */
-    protected function buildResult(int $exitCode): ShellResult
+    protected function buildResult(int $exitCode): ProcessResult
     {
-        return new ShellResult(
+        return new ProcessResult(
             $this->info,
             $this->pid,
             $exitCode,
@@ -275,10 +272,10 @@ class ShellRunner implements IteratorAggregate
     }
 
     /**
-     * @return ShellResult
+     * @return ProcessResult
      */
-    protected function getResult(): ShellResult
+    protected function getResult(): ProcessResult
     {
-        return $this->result ?? throw new UnreachableException('Shell result is not set');
+        return $this->result ?? throw new UnreachableException('ProcessResult is not set');
     }
 }

@@ -14,7 +14,7 @@ use const SIGTERM;
 /**
  * @phpstan-consistent-constructor
  */
-class Shell
+class Process
 {
     /**
      * @param string|array<int, string> $command
@@ -136,9 +136,9 @@ class Shell
     }
 
     /**
-     * @return ShellRunner
+     * @return ProcessRunner
      */
-    public function start(): ShellRunner
+    public function start(): ProcessRunner
     {
         $info = $this->buildInfo();
 
@@ -169,7 +169,7 @@ class Shell
             ]);
         }
 
-        return new ShellRunner(
+        return new ProcessRunner(
             $process,
             $info,
             $pipes,
@@ -179,11 +179,11 @@ class Shell
     }
 
     /**
-     * @return ShellInfo
+     * @return ProcessInfo
      */
-    public function buildInfo(): ShellInfo
+    public function buildInfo(): ProcessInfo
     {
-        return new ShellInfo(
+        return new ProcessInfo(
             $this->command,
             $this->directory ?? (string) getcwd(),
             $this->envs,
