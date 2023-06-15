@@ -4,6 +4,6 @@ namespace Kirameki\Process\Exceptions;
 
 use Kirameki\Core\Exceptions\RuntimeException;
 
-class CommandException extends RuntimeException
+class ProcessException extends RuntimeException
 {
 }

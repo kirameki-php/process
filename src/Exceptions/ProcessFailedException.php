@@ -36,7 +36,7 @@ use const SIGWINCH;
 use const SIGXCPU;
 use const SIGXFSZ;
 
-class CommandFailedException extends CommandException
+class ProcessFailedException extends ProcessException
 {
 
     /**

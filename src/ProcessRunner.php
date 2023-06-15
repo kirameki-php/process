@@ -8,7 +8,7 @@ use IteratorAggregate;
 use Kirameki\Core\Exceptions\UnreachableException;
 use Kirameki\Core\Signal;
 use Kirameki\Core\SignalEvent;
-use Kirameki\Process\Exceptions\CommandFailedException;
+use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Stream\FileStream;
 use Traversable;
 use function in_array;
@@ -212,7 +212,7 @@ class ProcessRunner implements IteratorAggregate
         };
 
         if ($callback($exitCode, $this->result)) {
-            throw new CommandFailedException($this->info->command, $exitCode, [
+            throw new ProcessFailedException($this->info->command, $exitCode, [
                 'shell' => $this,
             ]);
         }
