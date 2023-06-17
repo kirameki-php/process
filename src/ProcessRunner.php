@@ -40,7 +40,7 @@ class ProcessRunner implements IteratorAggregate
      * @param resource $process
      * @param ProcessInfo $info
      * @param array<int, resource> $pipes
-     * @param array<FileStream> $stdios
+     * @param array<int, FileStream> $stdios
      * @param Closure(int, ProcessResult): bool|null $onFailure
      * @param ProcessResult|null $result
      */
@@ -111,10 +111,10 @@ class ProcessRunner implements IteratorAggregate
         while($this->isRunning()) {
             $count = stream_select($read, $write, $except, null);
             if ($count > 0) {
-                if (($stdout = (string) $this->readFromStdout()) !== '') {
+                if (($stdout = (string) $this->readStdoutBuffer()) !== '') {
                     yield 1 => $stdout;
                 }
-                if (($stderr = (string) $this->readFromStderr()) !== '') {
+                if (($stderr = (string) $this->readStderrBuffer()) !== '') {
                     yield 2 => $stderr;
                 }
             }
@@ -188,7 +188,7 @@ class ProcessRunner implements IteratorAggregate
     /**
      * @return string|null
      */
-    public function readFromStdout(): ?string
+    public function readStdoutBuffer(): ?string
     {
         return $this->readPipe($this->pipes[1], $this->stdios[1]);
     }
@@ -196,7 +196,7 @@ class ProcessRunner implements IteratorAggregate
     /**
      * @return string|null
      */
-    public function readFromStderr(): ?string
+    public function readStderrBuffer(): ?string
     {
         return $this->readPipe($this->pipes[2], $this->stdios[2]);
     }
@@ -286,6 +286,7 @@ class ProcessRunner implements IteratorAggregate
             $this->info,
             $this->pid,
             $exitCode,
+            $this->stdios[0],
             $this->stdios[1],
             $this->stdios[2],
         );

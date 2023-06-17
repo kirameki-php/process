@@ -35,7 +35,7 @@ final class ProcessTest extends TestCase
         }
 
         while ($process->isRunning()) {
-            $out = $process->readFromStdout();
+            $out = $process->readStdoutBuffer();
             if ($out !== '') {
                 dump($out);
             }
@@ -44,7 +44,7 @@ final class ProcessTest extends TestCase
 
         usleep(1000);
 
-        $out = $process->readFromStdout();
+        $out = $process->readStdoutBuffer();
         dump($out);
 
         $result = $process->wait();

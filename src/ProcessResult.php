@@ -2,6 +2,7 @@
 
 namespace Kirameki\Process;
 
+use Kirameki\Stream\FileReader;
 use Kirameki\Stream\FileStream;
 
 readonly class ProcessResult
@@ -10,6 +11,7 @@ readonly class ProcessResult
      * @param ProcessInfo $info
      * @param int $pid
      * @param int $exitCode
+     * @param FileStream $stdin
      * @param FileStream $stdout
      * @param FileStream $stderr
      */
@@ -17,6 +19,7 @@ readonly class ProcessResult
         public ProcessInfo $info,
         public int $pid,
         public int $exitCode,
+        protected FileStream $stdin,
         protected FileStream $stdout,
         protected FileStream $stderr,
     ) {
@@ -41,7 +44,15 @@ readonly class ProcessResult
     /**
      * @return string
      */
-    public function readStdout(): string
+    public function readStdinBuffer(): string
+    {
+        return $this->stdin->readToEnd();
+    }
+
+    /**
+     * @return string
+     */
+    public function readStdoutBuffer(): string
     {
         return $this->stdout->readToEnd();
     }
@@ -49,28 +60,29 @@ readonly class ProcessResult
     /**
      * @return string
      */
-    public function readStderr(): string
+    public function readStderrBuffer(): string
     {
         return $this->stderr->readToEnd();
     }
 
-    /**
-     * @return string
-     */
-    public function getStdoutOutput(): string
+    public function getStdin(): string
     {
-        $stdout = $this->stdout;
-        $stdout->seek(0);
-        return $stdout->readToEnd();
+        return $this->stdin->rewind()->readToEnd();
     }
 
     /**
      * @return string
      */
-    public function getStderrOutput(): string
+    public function getStdout(): string
     {
-        $stderr = $this->stderr;
-        $stderr->seek(0);
-        return $stderr->readToEnd();
+        return $this->stdout->rewind()->readToEnd();
+    }
+
+    /**
+     * @return string
+     */
+    public function getStderr(): string
+    {
+        return $this->stderr->rewind()->readToEnd();
     }
 }

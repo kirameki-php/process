@@ -100,17 +100,6 @@ class Process
     }
 
     /**
-     * @return $this
-     */
-    public function noOutput(): static
-    {
-        $stream = new FileStream('/dev/null', 'w+');
-        return $this
-            ->stdout($stream)
-            ->stderr($stream);
-    }
-
-    /**
      * @param Closure(int): bool $callback
      * @return $this
      */
