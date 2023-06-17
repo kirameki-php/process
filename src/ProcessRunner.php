@@ -115,10 +115,10 @@ class ProcessRunner implements IteratorAggregate
         while($this->isRunning()) {
             $count = stream_select($read, $write, $except, null);
             if ($count > 0) {
-                if (($stdout = (string) $this->readStdoutBuffer()) !== '') {
+                if (($stdout = $this->readStdoutBuffer()) !== '') {
                     yield 1 => $stdout;
                 }
-                if (($stderr = (string) $this->readStderrBuffer()) !== '') {
+                if (($stderr = $this->readStderrBuffer()) !== '') {
                     yield 2 => $stderr;
                 }
             }
@@ -190,17 +190,17 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
-     * @return string|null
+     * @return string
      */
-    public function readStdoutBuffer(): ?string
+    public function readStdoutBuffer(): string
     {
         return $this->readPipe($this->pipes[1], $this->stdout);
     }
 
     /**
-     * @return string|null
+     * @return string
      */
-    public function readStderrBuffer(): ?string
+    public function readStderrBuffer(): string
     {
         return $this->readPipe($this->pipes[2], $this->stderr);
     }
@@ -243,23 +243,21 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
-     * @param resource $src
-     * @param FileStream $dest
-     * @return string|null
+     * @param resource $pipe
+     * @param FileStream $buffer
+     * @return string
      */
-    protected function readPipe(mixed $src, FileStream $dest): ?string
+    protected function readPipe(mixed $pipe, FileStream $buffer): string
     {
         // If the pipes are closed (They close when the process closes)
         // check if there are any output to be read from `$stdio`,
         // otherwise return **null**.
-        if (!is_resource($src)) {
-            return $dest->isNotEof()
-                ? $dest->readToEnd()
-                : null;
+        if (!is_resource($pipe)) {
+            return $buffer->readToEnd();
         }
 
-        $output = (string) stream_get_contents($src);
-        $dest->write($output);
+        $output = (string) stream_get_contents($pipe);
+        $buffer->write($output);
         return $output;
     }
 
