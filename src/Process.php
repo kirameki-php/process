@@ -5,6 +5,7 @@ namespace Kirameki\Process;
 use Closure;
 use Kirameki\Core\Exceptions\RuntimeException;
 use Kirameki\Stream\FileStream;
+use Kirameki\Stream\StreamReadable;
 use function array_keys;
 use function array_map;
 use function getcwd;
@@ -23,6 +24,7 @@ class Process
      * @param TimeoutInfo|null $timeout
      * @param int $termSignal
      * @param Closure(int): bool|null $onFailure
+     * @param FileStream|null $stdin
      * @param FileStream|null $stdout
      * @param FileStream|null $stderr
      */
@@ -33,6 +35,7 @@ class Process
         protected ?TimeoutInfo $timeout = null,
         protected ?int $termSignal = null,
         protected ?Closure $onFailure = null,
+        protected ?FileStream $stdin = null,
         protected ?FileStream $stdout = null,
         protected ?FileStream $stderr = null,
     ) {
@@ -109,6 +112,16 @@ class Process
      * @param FileStream|null $stream
      * @return $this
      */
+    public function stdin(?FileStream $stream): static
+    {
+        $this->stdin = $stream;
+        return $this;
+    }
+
+    /**
+     * @param FileStream|null $stream
+     * @return $this
+     */
     public function stdout(?FileStream $stream): static
     {
         $this->stdout = $stream;
@@ -147,7 +160,11 @@ class Process
             ? array_map(static fn($k, $v) => "{$k}={$v}", array_keys($envs), $envs)
             : null;
 
-        $fdSpec = [["pipe", "r"], ["pipe", "w"], ["pipe", "w"]];
+        $fdSpec = [
+            $this->stdin?->getResource() ?? ["pipe", "r"], // stdin
+            ["pipe", "w"], // stdout
+            ["pipe", "w"], // stderr
+        ];
         $memoryLimit = 1024 * 1024;
 
         $stdios = [

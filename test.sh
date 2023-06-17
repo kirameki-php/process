@@ -2,6 +2,13 @@
 
 echo "Hello World!"
 
+sleep 1
+
+echo "Enter your name: "
+read name
+
+echo "Hello $name!"
+
 #sleep 10
 
 i=0

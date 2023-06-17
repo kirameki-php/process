@@ -3,15 +3,18 @@
 namespace Kirameki\Process;
 
 use Closure;
-use InvalidArgumentException;
 use IteratorAggregate;
 use Kirameki\Core\Exceptions\UnreachableException;
 use Kirameki\Core\Signal;
 use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Stream\FileStream;
+use Kirameki\Stream\StreamReadable;
 use Traversable;
+use function dump;
+use function fwrite;
 use function in_array;
+use function is_int;
 use function is_resource;
 use function proc_close;
 use function proc_get_status;
@@ -21,6 +24,7 @@ use function stream_select;
 use function stream_set_blocking;
 use function strlen;
 use function usleep;
+use const PHP_EOL;
 use const SEEK_CUR;
 use const SIGKILL;
 
@@ -38,7 +42,7 @@ class ProcessRunner implements IteratorAggregate
      * @param resource $process
      * @param ProcessInfo $info
      * @param array<int, resource> $pipes
-     * @param array<int, FileStream> $stdios
+     * @param array{ 0: FileStream|null, 1: FileStream, 2: FileStream } $stdios
      * @param Closure(int, ProcessResult): bool|null $onFailure
      * @param ProcessResult|null $result
      */
@@ -75,6 +79,30 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
+     * @return bool
+     */
+    public function isRunning(): bool
+    {
+        return is_resource($this->process);
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDone(): bool
+    {
+        return !$this->isRunning();
+    }
+
+    /**
+     * @return bool
+     */
+    public function isStopped(): bool
+    {
+        return proc_get_status($this->process)['stopped'];
+    }
+
+    /**
      * @return Traversable<int, string>
      */
     public function getIterator(): Traversable
@@ -85,10 +113,10 @@ class ProcessRunner implements IteratorAggregate
         while($this->isRunning()) {
             $count = stream_select($read, $write, $except, null);
             if ($count > 0) {
-                if (($stdout = (string) $this->readStdout()) !== '') {
+                if (($stdout = (string) $this->readFromStdout()) !== '') {
                     yield 1 => $stdout;
                 }
-                if (($stderr = (string) $this->readStderr()) !== '') {
+                if (($stderr = (string) $this->readFromStderr()) !== '') {
                     yield 2 => $stderr;
                 }
             }
@@ -142,43 +170,40 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
+     * @param string $input
+     * @param bool $appendEol
+     * @return bool
+     */
+    public function writeToStdin(string $input, bool $appendEol = true): bool
+    {
+        $pipe = $this->pipes[0];
+
+        if (!is_resource($pipe)) {
+            return false;
+        }
+
+        if ($appendEol) {
+            $input .= PHP_EOL;
+        }
+
+        $length = fwrite($pipe, $input);
+        return is_int($length);
+    }
+
+    /**
      * @return string|null
      */
-    public function readStdout(): ?string
+    public function readFromStdout(): ?string
     {
-        return $this->readPipe(1);
+        return $this->readPipe($this->pipes[1], $this->stdios[1]);
     }
 
     /**
      * @return string|null
      */
-    public function readStderr(): ?string
+    public function readFromStderr(): ?string
     {
-        return $this->readPipe(2);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isRunning(): bool
-    {
-        return is_resource($this->process);
-    }
-
-    /**
-     * @return bool
-     */
-    public function isDone(): bool
-    {
-        return !$this->isRunning();
-    }
-
-    /**
-     * @return bool
-     */
-    public function isStopped(): bool
-    {
-        return proc_get_status($this->process)['stopped'];
+        return $this->readPipe($this->pipes[2], $this->stdios[2]);
     }
 
     /**
@@ -219,25 +244,23 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
-     * @param int $fd
+     * @param resource $pipe
+     * @param FileStream $buffer
      * @return string|null
      */
-    protected function readPipe(int $fd): ?string
+    protected function readPipe(mixed $pipe, FileStream $buffer): ?string
     {
-        $pipe = $this->pipes[$fd];
-        $stdio = $this->stdios[$fd];
-
         // If the pipes are closed (They close when the process closes)
         // check if there are any output to be read from `$stdio`,
         // otherwise return **null**.
         if (!is_resource($pipe)) {
-            return $stdio->isNotEof()
-                ? $stdio->readToEnd()
+            return $buffer->isNotEof()
+                ? $buffer->readToEnd()
                 : null;
         }
 
         $output = (string) stream_get_contents($pipe);
-        $stdio->write($output);
+        $buffer->write($output);
         return $output;
     }
 
@@ -250,8 +273,10 @@ class ProcessRunner implements IteratorAggregate
         // `proc_close(...)`. Otherwise unread data will be lost.
         // The output that has been read here is not read by the
         // user yet, so we seek back to the read position.
-        foreach ($this->stdios as $fd => $stdio) {
-            $output = (string) $this->readPipe($fd);
+        foreach ([1, 2] as $fd) {
+            $pipe = $this->pipes[$fd];
+            $stdio = $this->stdios[$fd];
+            $output = (string) $this->readPipe($pipe, $stdio);
             $stdio->seek(-strlen($output), SEEK_CUR);
         }
     }
