@@ -5,13 +5,10 @@ namespace Kirameki\Process;
 use Closure;
 use Kirameki\Core\Exceptions\RuntimeException;
 use Kirameki\Stream\FileStream;
-use Kirameki\Stream\StreamReadable;
 use function array_keys;
 use function array_map;
-use function dump;
 use function getcwd;
 use function proc_open;
-use function stream_set_blocking;
 use const SIGTERM;
 
 /**
@@ -139,7 +136,9 @@ class Process
             $process,
             $info,
             $pipes,
-            $this->getStdios(),
+            $this->stdin,
+            $this->stdout ?? new FileStream("php://temp/maxmemory:1048576"),
+            $this->stderr ?? new FileStream("php://temp/maxmemory:1048576"),
             $this->onFailure,
         );
     }
@@ -167,20 +166,6 @@ class Process
             ["pipe", "r"], // stdin
             ["pipe", "w"], // stdout
             ["pipe", "w"], // stderr
-        ];
-    }
-
-    /**
-     * @return array<int, FileStream>
-     */
-    protected function getStdios(): array
-    {
-        $maxMemory = 1024 * 1024; // 1MiB
-
-        return [
-            0 => $this->stdin ?? new FileStream("php://temp/maxmemory:{$maxMemory}"),
-            1 => $this->stdout ?? new FileStream("php://temp/maxmemory:{$maxMemory}"),
-            2 => $this->stderr ?? new FileStream("php://temp/maxmemory:{$maxMemory}"),
         ];
     }
 }

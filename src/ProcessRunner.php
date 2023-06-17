@@ -40,15 +40,19 @@ class ProcessRunner implements IteratorAggregate
      * @param resource $process
      * @param ProcessInfo $info
      * @param array<int, resource> $pipes
-     * @param array<int, FileStream> $stdios
+     * @param FileStream|null $stdin
+     * @param FileStream $stdout
+     * @param FileStream $stderr
      * @param Closure(int, ProcessResult): bool|null $onFailure
      * @param ProcessResult|null $result
      */
     public function __construct(
-        protected $process,
+        protected readonly mixed $process,
         public readonly ProcessInfo $info,
         protected readonly array $pipes,
-        protected readonly array $stdios,
+        protected readonly ?FileStream $stdin,
+        protected readonly FileStream $stdout,
+        protected readonly FileStream $stderr,
         protected readonly ?Closure $onFailure,
         protected ?ProcessResult $result = null,
     ) {
@@ -178,7 +182,7 @@ class ProcessRunner implements IteratorAggregate
             $input .= PHP_EOL;
         }
 
-        $this->stdios[0]->write($input);
+        $this->stdin?->write($input);
 
         $length = fwrite($this->pipes[0], $input);
 
@@ -190,7 +194,7 @@ class ProcessRunner implements IteratorAggregate
      */
     public function readStdoutBuffer(): ?string
     {
-        return $this->readPipe($this->pipes[1], $this->stdios[1]);
+        return $this->readPipe($this->pipes[1], $this->stdout);
     }
 
     /**
@@ -198,7 +202,7 @@ class ProcessRunner implements IteratorAggregate
      */
     public function readStderrBuffer(): ?string
     {
-        return $this->readPipe($this->pipes[2], $this->stdios[2]);
+        return $this->readPipe($this->pipes[2], $this->stderr);
     }
 
     /**
@@ -268,9 +272,8 @@ class ProcessRunner implements IteratorAggregate
         // `proc_close(...)`. Otherwise unread data will be lost.
         // The output that has been read here is not read by the
         // user yet, so we seek back to the read position.
-        foreach ([1, 2] as $fd) {
+        foreach ([1 => $this->stdout, 2 => $this->stderr] as $fd => $stdio) {
             $pipe = $this->pipes[$fd];
-            $stdio = $this->stdios[$fd];
             $output = (string) $this->readPipe($pipe, $stdio);
             $stdio->seek(-strlen($output), SEEK_CUR);
         }
@@ -286,9 +289,9 @@ class ProcessRunner implements IteratorAggregate
             $this->info,
             $this->pid,
             $exitCode,
-            $this->stdios[0],
-            $this->stdios[1],
-            $this->stdios[2],
+            $this->stdin,
+            $this->stdout,
+            $this->stderr,
         );
     }
 

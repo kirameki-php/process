@@ -2,7 +2,6 @@
 
 namespace Kirameki\Process;
 
-use Kirameki\Stream\FileReader;
 use Kirameki\Stream\FileStream;
 
 readonly class ProcessResult
@@ -19,7 +18,7 @@ readonly class ProcessResult
         public ProcessInfo $info,
         public int $pid,
         public int $exitCode,
-        protected FileStream $stdin,
+        protected ?FileStream $stdin,
         protected FileStream $stdout,
         protected FileStream $stderr,
     ) {
@@ -28,7 +27,7 @@ readonly class ProcessResult
     /**
      * @return bool
      */
-    public function wasSuccessful(): bool
+    public function succeeded(): bool
     {
         return $this->exitCode === ExitCode::SUCCESS;
     }
@@ -36,7 +35,15 @@ readonly class ProcessResult
     /**
      * @return bool
      */
-    public function didTimeout(): bool
+    public function failed(): bool
+    {
+        return !$this->succeeded();
+    }
+
+    /**
+     * @return bool
+     */
+    public function timedOut(): bool
     {
         return $this->exitCode === ExitCode::TIMED_OUT;
     }
@@ -46,7 +53,7 @@ readonly class ProcessResult
      */
     public function readStdinBuffer(): string
     {
-        return $this->stdin->readToEnd();
+        return $this->stdin?->readToEnd() ?? '';
     }
 
     /**
@@ -65,9 +72,12 @@ readonly class ProcessResult
         return $this->stderr->readToEnd();
     }
 
+    /**
+     * @return string
+     */
     public function getStdin(): string
     {
-        return $this->stdin->rewind()->readToEnd();
+        return $this->stdin?->rewind()->readToEnd() ?? '';
     }
 
     /**
