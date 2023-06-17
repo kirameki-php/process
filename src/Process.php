@@ -22,10 +22,9 @@ class Process
      * @param array<string, string>|null $envs
      * @param TimeoutInfo|null $timeout
      * @param int $termSignal
-     * @param Closure(int): bool|null $onFailure
-     * @param FileStream|null $stdin
      * @param FileStream|null $stdout
      * @param FileStream|null $stderr
+     * @param Closure(int): bool|null $onFailure
      */
     protected function __construct(
         protected string|array $command,
@@ -33,10 +32,9 @@ class Process
         protected ?array $envs = null,
         protected ?TimeoutInfo $timeout = null,
         protected ?int $termSignal = null,
-        protected ?Closure $onFailure = null,
-        protected ?FileStream $stdin = null,
         protected ?FileStream $stdout = null,
         protected ?FileStream $stderr = null,
+        protected ?Closure $onFailure = null,
     ) {
     }
 
@@ -136,9 +134,6 @@ class Process
             $process,
             $info,
             $pipes,
-            $this->stdin,
-            $this->stdout ?? new FileStream("php://temp/maxmemory:1048576"),
-            $this->stderr ?? new FileStream("php://temp/maxmemory:1048576"),
             $this->onFailure,
         );
     }

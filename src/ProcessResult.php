@@ -10,7 +10,7 @@ readonly class ProcessResult
      * @param ProcessInfo $info
      * @param int $pid
      * @param int $exitCode
-     * @param FileStream $stdin
+     * @param FileStream|null $stdin
      * @param FileStream $stdout
      * @param FileStream $stderr
      */
@@ -77,7 +77,7 @@ readonly class ProcessResult
      */
     public function getStdin(): string
     {
-        return $this->stdin?->rewind()->readToEnd() ?? '';
+        return $this->stdin?->readFromStartToEnd() ?? '';
     }
 
     /**
@@ -85,7 +85,7 @@ readonly class ProcessResult
      */
     public function getStdout(): string
     {
-        return $this->stdout->rewind()->readToEnd();
+        return $this->stdout->readFromStartToEnd();
     }
 
     /**
@@ -93,6 +93,6 @@ readonly class ProcessResult
      */
     public function getStderr(): string
     {
-        return $this->stderr->rewind()->readToEnd();
+        return $this->stderr->readFromStartToEnd();
     }
 }

@@ -9,6 +9,7 @@ use Kirameki\Core\Signal;
 use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Stream\FileStream;
+use Kirameki\Stream\TempStream;
 use Traversable;
 use function fwrite;
 use function in_array;
@@ -37,12 +38,24 @@ class ProcessRunner implements IteratorAggregate
     public readonly int $pid;
 
     /**
+     * @var FileStream|null
+     */
+    protected ?FileStream $stdin = null;
+
+    /**
+     * @var FileStream
+     */
+    protected FileStream $stdout;
+
+    /**
+     * @var FileStream
+     */
+    protected FileStream $stderr;
+
+    /**
      * @param resource $process
      * @param ProcessInfo $info
      * @param array<int, resource> $pipes
-     * @param FileStream|null $stdin
-     * @param FileStream $stdout
-     * @param FileStream $stderr
      * @param Closure(int, ProcessResult): bool|null $onFailure
      * @param ProcessResult|null $result
      */
@@ -50,13 +63,13 @@ class ProcessRunner implements IteratorAggregate
         protected readonly mixed $process,
         public readonly ProcessInfo $info,
         protected readonly array $pipes,
-        protected readonly ?FileStream $stdin,
-        protected readonly FileStream $stdout,
-        protected readonly FileStream $stderr,
         protected readonly ?Closure $onFailure,
         protected ?ProcessResult $result = null,
     ) {
         $this->pid = proc_get_status($this->process)['pid'];
+
+        $this->stdout = $this->makeStdioStream();
+        $this->stderr = $this->makeStdioStream();
 
         foreach ($this->pipes as $pipe) {
             if (is_resource($pipe)) {
@@ -182,7 +195,8 @@ class ProcessRunner implements IteratorAggregate
             $input .= PHP_EOL;
         }
 
-        $this->stdin?->write($input);
+        $this->stdin ??= $this->makeStdioStream();
+        $this->stdin->write($input);
 
         $length = fwrite($this->pipes[0], $input);
 
@@ -272,9 +286,17 @@ class ProcessRunner implements IteratorAggregate
         // user yet, so we seek back to the read position.
         foreach ([1 => $this->stdout, 2 => $this->stderr] as $fd => $stdio) {
             $pipe = $this->pipes[$fd];
-            $output = (string) $this->readPipe($pipe, $stdio);
+            $output = $this->readPipe($pipe, $stdio);
             $stdio->seek(-strlen($output), SEEK_CUR);
         }
+    }
+
+    /**
+     * @return FileStream
+     */
+    protected function makeStdioStream(): FileStream
+    {
+        return new TempStream();
     }
 
     /**
