@@ -8,8 +8,10 @@ use Kirameki\Stream\FileStream;
 use Kirameki\Stream\StreamReadable;
 use function array_keys;
 use function array_map;
+use function dump;
 use function getcwd;
 use function proc_open;
+use function stream_set_blocking;
 use const SIGTERM;
 
 /**
@@ -109,36 +111,6 @@ class Process
     }
 
     /**
-     * @param FileStream|null $stream
-     * @return $this
-     */
-    public function stdin(?FileStream $stream): static
-    {
-        $this->stdin = $stream;
-        return $this;
-    }
-
-    /**
-     * @param FileStream|null $stream
-     * @return $this
-     */
-    public function stdout(?FileStream $stream): static
-    {
-        $this->stdout = $stream;
-        return $this;
-    }
-
-    /**
-     * @param FileStream|null $stream
-     * @return $this
-     */
-    public function stderr(?FileStream $stream): static
-    {
-        $this->stderr = $stream;
-        return $this;
-    }
-
-    /**
      * @param Closure(int): bool $callback
      * @return $this
      */
@@ -160,21 +132,9 @@ class Process
             ? array_map(static fn($k, $v) => "{$k}={$v}", array_keys($envs), $envs)
             : null;
 
-        $fdSpec = [
-            $this->stdin?->getResource() ?? ["pipe", "r"], // stdin
-            ["pipe", "w"], // stdout
-            ["pipe", "w"], // stderr
-        ];
-        $memoryLimit = 1024 * 1024;
-
-        $stdios = [
-            1 => $this->stdout ?? new FileStream("php://temp/maxmemory:{$memoryLimit}"),
-            2 => $this->stderr ?? new FileStream("php://temp/maxmemory:{$memoryLimit}"),
-        ];
-
         $process = proc_open(
             $info->getFullCommand(),
-            $fdSpec,
+            $this->getFileDescriptorSpec(),
             $pipes,
             $info->workingDirectory,
             $envVars,
@@ -190,7 +150,7 @@ class Process
             $process,
             $info,
             $pipes,
-            $stdios,
+            $this->getStdios(),
             $this->onFailure,
         );
     }
@@ -207,5 +167,31 @@ class Process
             $this->timeout,
             $this->termSignal ?? SIGTERM,
         );
+    }
+
+    /**
+     * @return array<int, mixed>
+     */
+    protected function getFileDescriptorSpec(): array
+    {
+        return [
+            ["pipe", "r"], // stdin
+            ["pipe", "w"], // stdout
+            ["pipe", "w"], // stderr
+        ];
+    }
+
+    /**
+     * @return array<int, FileStream>
+     */
+    protected function getStdios(): array
+    {
+        $maxMemory = 1024 * 1024; // 1MiB
+
+        return [
+            0 => $this->stdin ?? new FileStream("php://temp/maxmemory:{$maxMemory}"),
+            1 => $this->stdout ?? new FileStream("php://temp/maxmemory:{$maxMemory}"),
+            2 => $this->stderr ?? new FileStream("php://temp/maxmemory:{$maxMemory}"),
+        ];
     }
 }

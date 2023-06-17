@@ -10,8 +10,6 @@ $class = new class {
     public function __construct()
     {
         $stream = new FileStream('php://temp');
-        $stream->write('xxx' . PHP_EOL);
-        $stream->seek(0);
 
         $process = Process::command(['sh', 'test.sh'])
             ->stdin($stream)
@@ -26,9 +24,9 @@ $class = new class {
             if ($out !== '') {
                 dump($out);
             }
-//            if (str_contains((string) $out, 'Enter your name')) {
-//                dump($process->writeToStdin('abc' . PHP_EOL));
-//            }
+            if (str_contains((string) $out, 'Enter your name')) {
+//                dump($process->writeToStdin('abc'));
+            }
             usleep(10_000);
         }
 

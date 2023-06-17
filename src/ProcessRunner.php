@@ -9,9 +9,7 @@ use Kirameki\Core\Signal;
 use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Stream\FileStream;
-use Kirameki\Stream\StreamReadable;
 use Traversable;
-use function dump;
 use function fwrite;
 use function in_array;
 use function is_int;
@@ -42,7 +40,7 @@ class ProcessRunner implements IteratorAggregate
      * @param resource $process
      * @param ProcessInfo $info
      * @param array<int, resource> $pipes
-     * @param array{ 0: FileStream|null, 1: FileStream, 2: FileStream } $stdios
+     * @param array<FileStream> $stdios
      * @param Closure(int, ProcessResult): bool|null $onFailure
      * @param ProcessResult|null $result
      */
@@ -176,17 +174,14 @@ class ProcessRunner implements IteratorAggregate
      */
     public function writeToStdin(string $input, bool $appendEol = true): bool
     {
-        $pipe = $this->pipes[0];
-
-        if (!is_resource($pipe)) {
-            return false;
-        }
-
         if ($appendEol) {
             $input .= PHP_EOL;
         }
 
-        $length = fwrite($pipe, $input);
+        $this->stdios[0]->write($input);
+
+        $length = fwrite($this->pipes[0], $input);
+
         return is_int($length);
     }
 
@@ -244,23 +239,23 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
-     * @param resource $pipe
-     * @param FileStream $buffer
+     * @param resource $src
+     * @param FileStream $dest
      * @return string|null
      */
-    protected function readPipe(mixed $pipe, FileStream $buffer): ?string
+    protected function readPipe(mixed $src, FileStream $dest): ?string
     {
         // If the pipes are closed (They close when the process closes)
         // check if there are any output to be read from `$stdio`,
         // otherwise return **null**.
-        if (!is_resource($pipe)) {
-            return $buffer->isNotEof()
-                ? $buffer->readToEnd()
+        if (!is_resource($src)) {
+            return $dest->isNotEof()
+                ? $dest->readToEnd()
                 : null;
         }
 
-        $output = (string) stream_get_contents($pipe);
-        $buffer->write($output);
+        $output = (string) stream_get_contents($src);
+        $dest->write($output);
         return $output;
     }
 
