@@ -4,11 +4,15 @@ namespace Kirameki\Process;
 
 use Closure;
 use Kirameki\Core\Exceptions\RuntimeException;
+use Kirameki\Core\Signal;
+use Kirameki\Core\SignalEvent;
 use Kirameki\Stream\FileStream;
 use function array_keys;
 use function array_map;
 use function getcwd;
+use function proc_get_status;
 use function proc_open;
+use const SIGCHLD;
 use const SIGTERM;
 
 /**
@@ -116,6 +120,8 @@ class Process
             ? array_map(static fn($k, $v) => "{$k}={$v}", array_keys($envs), $envs)
             : null;
 
+        $signalRegistrar = SignalRegistrar::register($info);
+
         $process = proc_open(
             $info->getFullCommand(),
             $this->getFileDescriptorSpec(),
@@ -130,9 +136,13 @@ class Process
             ]);
         }
 
+        $pid = proc_get_status($process)['pid'];
+
         return new ProcessRunner(
             $process,
+            $signalRegistrar,
             $info,
+            $pid,
             $pipes,
             $this->onFailure,
         );

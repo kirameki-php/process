@@ -5,8 +5,6 @@ namespace Kirameki\Process;
 use Closure;
 use IteratorAggregate;
 use Kirameki\Core\Exceptions\UnreachableException;
-use Kirameki\Core\Signal;
-use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Stream\FileStream;
 use Kirameki\Stream\TempStream;
@@ -33,11 +31,6 @@ use const SIGKILL;
 class ProcessRunner implements IteratorAggregate
 {
     /**
-     * @var int
-     */
-    public readonly int $pid;
-
-    /**
      * @var FileStream|null
      */
     protected ?FileStream $stdin = null;
@@ -54,20 +47,22 @@ class ProcessRunner implements IteratorAggregate
 
     /**
      * @param resource $process
+     * @param SignalRegistrar $signalManager
      * @param ProcessInfo $info
+     * @param int $pid
      * @param array<int, resource> $pipes
      * @param Closure(int, ProcessResult): bool|null $onFailure
      * @param ProcessResult|null $result
      */
     public function __construct(
         protected readonly mixed $process,
+        protected SignalRegistrar $signalManager,
         public readonly ProcessInfo $info,
+        public int $pid,
         protected readonly array $pipes,
         protected readonly ?Closure $onFailure,
         protected ?ProcessResult $result = null,
     ) {
-        $this->pid = proc_get_status($this->process)['pid'];
-
         $this->stdout = $this->makeStdioStream();
         $this->stderr = $this->makeStdioStream();
 
@@ -77,12 +72,7 @@ class ProcessRunner implements IteratorAggregate
             }
         }
 
-        Signal::handle(SIGCHLD, function(SignalEvent $event) {
-            if ($event->info['pid'] === $this->pid) {
-                $this->handleSigChld($event->info['status']);
-                $event->evictCallback();
-            }
-        });
+        $signalManager->onExit($this->pid, $this->handleExit(...));
     }
 
     /**
