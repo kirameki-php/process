@@ -12,7 +12,6 @@ $class = new class {
         $stream = new FileStream('php://temp');
 
         $process = Process::command(['sh', 'test.sh'])
-            ->stdin($stream)
             ->start();
 
 //        foreach ($process as $fd => $stdio) {
@@ -20,24 +19,24 @@ $class = new class {
 //        }
 
         while ($process->isRunning()) {
-            $out = $process->readFromStdout();
+            $out = $process->readStdoutBuffer();
             if ($out !== '') {
                 dump($out);
             }
             if (str_contains((string) $out, 'Enter your name')) {
-//                dump($process->writeToStdin('abc'));
+                dump($process->writeToStdin('abc'));
             }
             usleep(10_000);
         }
 
         usleep(10000);
 
-        $out = $process->readFromStdout();
+        $out = $process->readStderrBuffer();
         dump($out);
 
         usleep(10000);
 
-        $out = $process->readFromStdout();
+        $out = $process->readStdoutBuffer();
         dump($out);
 
         $result = $process->wait();

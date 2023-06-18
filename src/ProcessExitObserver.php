@@ -13,7 +13,7 @@ use const SIGCHLD;
  * @internal
  * @phpstan-consistent-constructor
  */
-class SignalRegistrar
+class ProcessExitObserver
 {
     /**
      * @var static
@@ -36,10 +36,13 @@ class SignalRegistrar
     protected array $registered = [];
 
     /**
-     * @param ProcessInfo $info
+     * Observes SIGCHLD signals and invokes registered callbacks.
+     * Observation MUST start before any process is spawned.
+     * Or else there is a chance a process exits before the observer
+     * has a change to register a handler.
      * @return static
      */
-    public static function register(ProcessInfo $info): static
+    public static function observe(): static
     {
         $self = self::$instance ??= new static();
 
@@ -96,7 +99,7 @@ class SignalRegistrar
      * @param Closure(int): void $callback
      * @return void
      */
-    public function onExit(int $pid, Closure $callback): void
+    public function onSignal(int $pid, Closure $callback): void
     {
         if ($this->callbackRegistered($pid)) {
             throw new ProcessException('Callback already registered for pid: ' . $pid);
