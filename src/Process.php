@@ -118,8 +118,8 @@ class Process
             : null;
 
         // Observation of exit MUST be started before proc_open() is called.
-        // @see ProcessExitObserver::observe() for more info.
-        $exitObserver = ProcessExitObserver::observe();
+        // @see ProcessObserver::observeSignal() for more info.
+        $observer = ProcessObserver::observeSignal();
 
         $process = proc_open(
             $info->getFullCommand(),
@@ -139,7 +139,7 @@ class Process
 
         return new ProcessRunner(
             $process,
-            $exitObserver,
+            $observer,
             $info,
             $pid,
             $pipes,

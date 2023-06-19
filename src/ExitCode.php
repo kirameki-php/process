@@ -17,6 +17,9 @@ class ExitCode
     public const SIGSEGV = 139;
     public const SIGTERM = 143;
 
+    /**
+     * @return list<int>
+     */
     public static function defaultFailureCodes(): array
     {
         return [

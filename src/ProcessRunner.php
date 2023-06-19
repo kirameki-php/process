@@ -47,7 +47,7 @@ class ProcessRunner implements IteratorAggregate
 
     /**
      * @param resource $process
-     * @param ProcessExitObserver $exitObserver
+     * @param ProcessObserver $observer
      * @param ProcessInfo $info
      * @param int $pid
      * @param array<int, resource> $pipes
@@ -56,7 +56,7 @@ class ProcessRunner implements IteratorAggregate
      */
     public function __construct(
         protected readonly mixed $process,
-        protected ProcessExitObserver $exitObserver,
+        protected ProcessObserver $observer,
         public readonly ProcessInfo $info,
         public int $pid,
         protected readonly array $pipes,
@@ -72,7 +72,7 @@ class ProcessRunner implements IteratorAggregate
             }
         }
 
-        $exitObserver->onSignal($this->pid, $this->onSigChld(...));
+        $observer->onSignal($this->pid, $this->onSigChld(...));
     }
 
     /**

@@ -13,7 +13,7 @@ use const SIGCHLD;
  * @internal
  * @phpstan-consistent-constructor
  */
-class ProcessExitObserver
+class ProcessObserver
 {
     /**
      * @var static
@@ -42,7 +42,7 @@ class ProcessExitObserver
      * has a change to register a handler.
      * @return static
      */
-    public static function observe(): static
+    public static function observeSignal(): static
     {
         $self = self::$instance ??= new static();
 
