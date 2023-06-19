@@ -10,6 +10,10 @@ use function array_key_exists;
 use const SIGCHLD;
 
 /**
+ * Observes SIGCHLD signals and invokes registered callbacks.
+ * If a process exits before the observer has a change to register a handler,
+ * the exit code is stored and the callback is invoked when the observer is registered.
+ *
  * @internal
  * @phpstan-consistent-constructor
  */
@@ -36,10 +40,9 @@ class ProcessObserver
     protected array $registered = [];
 
     /**
-     * Observes SIGCHLD signals and invokes registered callbacks.
-     * Observation MUST start before any process is spawned.
-     * Or else there is a chance a process exits before the observer
-     * has a change to register a handler.
+     * Observation MUST start before any process is spawned or there is a chance
+     * a process exits before the observer has a change to register a handler.
+     *
      * @return static
      */
     public static function observeSignal(): static
@@ -56,6 +59,11 @@ class ProcessObserver
         return self::$instance;
     }
 
+    /**
+     * There should only be one observer instance which is registered
+     * through observeSignal, so make this protected to make sure
+     * people don't initialize this accidentally.
+     */
     protected function __construct()
     {
     }
