@@ -51,7 +51,8 @@ class ProcessRunner implements IteratorAggregate
      * @param ProcessInfo $info
      * @param int $pid
      * @param array<int, resource> $pipes
-     * @param Closure(int, ProcessResult): bool|null $onFailure
+     * @param list<Closure(ProcessResult): mixed> $completeCallbacks
+     * @param Closure(ProcessResult): bool|null $onFailure
      * @param ProcessResult|null $result
      */
     public function __construct(
@@ -60,6 +61,7 @@ class ProcessRunner implements IteratorAggregate
         public readonly ProcessInfo $info,
         public int $pid,
         protected readonly array $pipes,
+        protected readonly array $completeCallbacks,
         protected readonly ?Closure $onFailure,
         protected ?ProcessResult $result = null,
     ) {
@@ -224,26 +226,24 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
-     * @param int $exitCode
+     * @param int $code
      * @return void
      */
-    protected function handleExit(int $exitCode): void
+    protected function handleExit(int $code): void
     {
-        $this->result = $this->buildResult($exitCode);
+        $result = $this->result = $this->buildResult($code);
 
-        if ($exitCode === 0) {
+        foreach ($this->completeCallbacks as $callback) {
+            $callback($result);
+        }
+
+        if (in_array($code, $this->info->exceptedExitCodes, true)) {
             return;
         }
 
-        $callback = $this->onFailure ?? static function(int $exitCode): bool {
-            return in_array($exitCode, ExitCode::defaultFailureCodes(), true);
-        };
-
-        if ($callback($exitCode, $this->result)) {
-            throw new ProcessFailedException($this->info->command, $exitCode, [
-                'shell' => $this,
-            ]);
-        }
+        throw new ProcessFailedException($this->info->command, $code, [
+            'result' => $result,
+        ]);
     }
 
     /**

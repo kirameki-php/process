@@ -8,6 +8,7 @@
     "ext-pcntl": "*",
     "ext-posix": "*",
     "kirameki/core": "dev-main",
+    "kirameki/event": "dev-main",
     "kirameki/stream": "dev-main"
   },
   "require-dev": {

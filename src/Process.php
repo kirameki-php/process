@@ -23,9 +23,11 @@ class Process
      * @param array<string, string>|null $envs
      * @param TimeoutInfo|null $timeout
      * @param int $termSignal
+     * @param array<int, int> $exceptedExitCodes
      * @param FileStream|null $stdout
      * @param FileStream|null $stderr
-     * @param Closure(int): bool|null $onFailure
+     * @param array<int, Closure(ProcessResult): mixed> $completeCallbacks
+     * @param Closure(ProcessResult): bool|null $onFailure
      */
     protected function __construct(
         protected string|array $command,
@@ -33,8 +35,10 @@ class Process
         protected ?array $envs = null,
         protected ?TimeoutInfo $timeout = null,
         protected ?int $termSignal = null,
+        protected ?array $exceptedExitCodes = null,
         protected ?FileStream $stdout = null,
         protected ?FileStream $stderr = null,
+        protected readonly array $completeCallbacks = [],
         protected ?Closure $onFailure = null,
     ) {
     }
@@ -49,7 +53,7 @@ class Process
     }
 
     /**
-     * @param non-empty-string $path
+     * @param string|null $path
      * @return $this
      */
     public function inDirectory(?string $path): static
@@ -92,6 +96,16 @@ class Process
     public function termSignal(int $signal): static
     {
         $this->termSignal = $signal;
+        return $this;
+    }
+
+    /**
+     * @param array<int, int> $codes
+     * @return $this
+     */
+    public function exceptedExitCodes(?array $codes): static
+    {
+        $this->exceptedExitCodes = $codes;
         return $this;
     }
 
@@ -143,6 +157,7 @@ class Process
             $info,
             $pid,
             $pipes,
+            $this->completeCallbacks,
             $this->onFailure,
         );
     }
@@ -150,7 +165,7 @@ class Process
     /**
      * @return ProcessInfo
      */
-    public function buildInfo(): ProcessInfo
+    protected function buildInfo(): ProcessInfo
     {
         return new ProcessInfo(
             $this->command,
@@ -158,6 +173,7 @@ class Process
             $this->envs,
             $this->timeout,
             $this->termSignal ?? SIGTERM,
+            $this->exceptedExitCodes ?? [ExitCode::SUCCESS],
         );
     }
 

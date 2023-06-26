@@ -2,56 +2,146 @@
 
 namespace Tests\Kirameki\Process;
 
-use Kirameki\Core\Signal;
 use Kirameki\Core\Testing\TestCase;
+use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Process\Process;
+use function dirname;
 use function dump;
+use function range;
 use function sleep;
-use function usleep;
-use function var_dump;
-use const SIGCHLD;
-use const SIGCLD;
+use const SIGHUP;
+use const SIGKILL;
+use const SIGSEGV;
+use const SIGTERM;
 
 final class ProcessTest extends TestCase
 {
-    public function test_instantiate(): void
+    /**
+     * @return string
+     */
+    protected function getScriptsDir(): string
     {
-        $process = null;
+        return dirname(__DIR__) . '/scripts';
+    }
 
-        Signal::handle(SIGCHLD, function() use (&$process) {
-            dump('SIGCHLD');
-        });
+    public function test_command(): void
+    {
+        $result = Process::command(['sh', 'exit.sh', '0'])
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
 
-        $process = Process::command(['sh', 'test.sh'])
-//            ->timeout(0.1)
+        self::assertSame(0, $result->exitCode);
+        self::assertNull($result->info->envs);
+        self::assertSame(SIGTERM, $result->info->termSignal);
+        self::assertSame('/app/tests/scripts', $result->info->workingDirectory);
+        self::assertTrue($result->succeeded());
+        self::assertFalse($result->failed());
+    }
+//
+//    public function test_exitCode_general_error(): void
+//    {
+//        $this->expectExceptionMessage('General error. (code: 1, command: ["sh","exit.sh","1"])');
+//        $this->expectException(ProcessFailedException::class);
+//
+//        Process::command(['sh', 'exit.sh', '1'])
+//            ->inDirectory($this->getScriptsDir())
+//            ->start()
+//            ->wait();
+//    }
+//
+//    public function test_command_missing_sh_file(): void
+//    {
+//        $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: ["sh","non-existent.sh"])');
+//        $this->expectException(ProcessFailedException::class);
+//
+//        Process::command(['sh', 'non-existent.sh'])
+//            ->start()
+//            ->wait();
+//    }
+//
+    public function test_command_has_no_permission(): void
+    {
+        $this->expectExceptionMessage('Permission denied. (code: 126, command: "./non-executable.sh")');
+        $this->expectException(ProcessFailedException::class);
+
+        Process::command('./non-executable.sh')
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
+//    public function test_command_missing_script(): void
+//    {
+//        $this->expectExceptionMessage('Command not found. (code: 127, command: ["noop.sh"])');
+//        $this->expectException(ProcessFailedException::class);
+//
+//        Process::command(['noop.sh'])
+//            ->start()
+//            ->wait();
+//    }
+//
+//    public function test_command_signal_on_running_process(): void
+//    {
+//        $process = Process::command(['sh', 'exit.sh', '--sleep', '5'])
+//            ->inDirectory($this->getScriptsDir())
+//            ->start();
+//
+//        self::assertTrue($process->signal(SIGHUP));
+//
+//        $process->wait();
+//
+//        // try to signal again should return false.
+//        self::assertFalse($process->signal(SIGHUP));
+//    }
+//
+    public function test_command_signal_on_segfault_process(): void
+    {
+        $this->expectExceptionMessage('Terminated by SIGSEGV (11). (code: 139, command: ["sh","exit.sh","--sleep","5"])');
+        $this->expectException(ProcessFailedException::class);
+
+        $process = Process::command(['sh', 'exit.sh', '--sleep', '5'])
+            ->inDirectory($this->getScriptsDir())
             ->start();
 
-        $process2 = Process::command(['sh', 'test.sh'])
-//            ->timeout(0.1)
+        self::assertTrue($process->signal(SIGSEGV));
+
+        $process->wait();
+    }
+
+    public function test_command_signal_on_terminated_process(): void
+    {
+        $this->expectExceptionMessage('Terminated by SIGKILL (9). (code: 137, command: ["sh","exit.sh","--sleep","5"])');
+        $this->expectException(ProcessFailedException::class);
+
+        $process = Process::command(['sh', 'exit.sh', '--sleep', '5'])
+            ->inDirectory($this->getScriptsDir())
             ->start();
 
-        foreach ($process as $fd => $stdio) {
-            dump($stdio);
+        self::assertTrue($process->signal(SIGKILL));
+
+        $process->wait();
+    }
+
+    public function test_test(): void
+    {
+        $process1 = null;
+        foreach (range(0, 10) as $i) {
+            $process1 = Process::command(['sh', 'exit.sh', '--sleep', '1'])
+                ->inDirectory($this->getScriptsDir())
+                ->start();
+            usleep(1000);
         }
 
-        while ($process->isRunning()) {
-            $out = $process->readStdoutBuffer();
-            if ($out !== '') {
-                dump($out);
-            }
-            usleep(10_000);
-        }
+        sleep(3);
 
-        usleep(1000);
-
-        $out = $process->readStdoutBuffer();
-        dump($out);
-
-        $result = $process->wait();
-        dump($result);
+        $process2 = Process::command(['sh', 'exit.sh', '--sleep', '1'])
+            ->inDirectory($this->getScriptsDir())
+            ->start();
 
         $process2->wait();
 
-        sleep(5);
+        $process1->wait();
+
     }
 }

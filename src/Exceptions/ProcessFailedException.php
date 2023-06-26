@@ -55,13 +55,17 @@ class ProcessFailedException extends ProcessException
             $exitCode === 1 => 'General error.',
             $exitCode === 2 => 'Misuse of shell builtins.',
             $exitCode === 124 => 'Timed out.',
+            $exitCode === 126 => 'Permission denied.',
             $exitCode === 127 => 'Command not found.',
             $exitCode > 128 && $exitCode < 160 => $this->generateSignalMessage(),
             default => '',
         };
+        if ($message !== '') {
+            $message .= ' ';
+        }
 
         $commandString = Json::encode($command);
-        $message .= " (exit code: {$exitCode}, command: {$commandString})";
+        $message .= "(code: {$exitCode}, command: {$commandString})";
 
         parent::__construct($message, $context, 0, $previous);
 

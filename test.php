@@ -1,45 +1,33 @@
 <?php
 
-require __DIR__.'/vendor/autoload.php';
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
 
-use Kirameki\Process\Process;
-use Kirameki\Stream\FileStream;
-use Kirameki\Stream\MemoryStream;
+// store processes in an array as [$pid => $process, ...]
+$processes = [];
 
-$class = new class {
-    public function __construct()
-    {
-        $stream = new FileStream('php://temp');
+// catch signals from child processes and unset processes from the array
+pcntl_async_signals(true);
+pcntl_signal(SIGCHLD, function($sig, $info) use (&$processes) {
+    unset($processes[$info['pid']]);
+}, false);
 
-        $process = Process::command(['sh', 'test.sh'])
-            ->start();
+// open 10 processes and store them in an array
+foreach (range(0, 10) as $i) {
+    $process = proc_open('echo $$', [], $pipes);
+    $pid = proc_get_status($process)['pid'];
+    $processes[$pid] = $process;
+}
 
-//        foreach ($process as $fd => $stdio) {
-//            dump($stdio);
-//        }
-
-        while ($process->isRunning()) {
-            $out = $process->readStdoutBuffer();
-            if ($out !== '') {
-                dump($out);
-            }
-            if (str_contains((string) $out, 'Enter your name')) {
-                dump($process->writeToStdin('abc'));
-            }
-            usleep(10_000);
-        }
-
-        usleep(10000);
-
-        $out = $process->readStderrBuffer();
-        dump($out);
-
-        usleep(10000);
-
-        $out = $process->readStdoutBuffer();
-        dump($out);
-
-        $result = $process->wait();
-        dump($result);
+// wait for all processes to exit
+while(true) {
+    echo ' processes remaining:' . count($processes) . PHP_EOL;
+    if (empty($processes)) {
+        break;
     }
-};
+    sleep(1);
+}
+
+// Check that all processes have been removed.
+var_dump($processes);

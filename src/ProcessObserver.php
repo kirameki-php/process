@@ -7,6 +7,10 @@ use Kirameki\Core\Signal;
 use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessException;
 use function array_key_exists;
+use function array_keys;
+use function dump;
+use function pcntl_async_signals;
+use function pcntl_signal;
 use const SIGCHLD;
 
 /**
@@ -51,7 +55,11 @@ class ProcessObserver
 
         // only register signal handler if there are no more signals.
         if (static::$processCount === 0) {
-            Signal::handle(SIGCHLD, $self->handleSignal(...));
+            pcntl_async_signals(true);
+            //Signal::handle(SIGCHLD, $self->handleSignal(...));
+            pcntl_signal(SIGCHLD, function($info) {
+                dump($info);
+            }, false);
         }
 
         static::$processCount++;
@@ -74,14 +82,27 @@ class ProcessObserver
      */
     protected function handleSignal(SignalEvent $event): void
     {
+        dump($event->info['pid']);
+        dump(static::$processCount);
+        dump(array_keys($this->registered));
+
         static::$processCount--;
 
         // evict handler if there's no more processes to wait for.
         if (static::$processCount === 0) {
             $event->evictHandler();
         }
-
-        $this->exited($event->info['pid'], $event->info['status']);
+//
+//        $info = $event->info;
+//
+//        $pid = $info['pid'];
+//
+//        $exitCode = $info['status'];
+//        if ($info['code'] === 2) {
+//            $exitCode += 128;
+//        }
+//
+    // $this->exited($pid, $exitCode);
     }
 
     /**
