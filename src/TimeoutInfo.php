@@ -8,6 +8,7 @@ readonly class TimeoutInfo
         public float $durationSeconds,
         public int $signal,
         public ?float $killAfterSeconds,
-    ) {
+    )
+    {
     }
 }

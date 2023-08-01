@@ -8,7 +8,6 @@ readonly class ProcessResult
 {
     /**
      * @param ProcessInfo $info
-     * @param int $pid
      * @param int $exitCode
      * @param FileStream|null $stdin
      * @param FileStream $stdout
@@ -16,12 +15,12 @@ readonly class ProcessResult
      */
     public function __construct(
         public ProcessInfo $info,
-        public int $pid,
         public int $exitCode,
         protected ?FileStream $stdin,
         protected FileStream $stdout,
         protected FileStream $stderr,
-    ) {
+    )
+    {
     }
 
     /**

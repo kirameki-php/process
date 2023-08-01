@@ -4,7 +4,7 @@ namespace Tests\Kirameki\Process;
 
 use Kirameki\Core\Testing\TestCase;
 use Kirameki\Process\Exceptions\ProcessFailedException;
-use Kirameki\Process\Process;
+use Kirameki\Process\ProcessBuilder;
 use function dirname;
 use function dump;
 use function range;
@@ -26,7 +26,7 @@ final class ProcessTest extends TestCase
 
     public function test_command(): void
     {
-        $result = Process::command(['sh', 'exit.sh', '0'])
+        $result = ProcessBuilder::command(['sh', 'exit.sh', '0'])
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
@@ -65,7 +65,7 @@ final class ProcessTest extends TestCase
         $this->expectExceptionMessage('Permission denied. (code: 126, command: "./non-executable.sh")');
         $this->expectException(ProcessFailedException::class);
 
-        Process::command('./non-executable.sh')
+        ProcessBuilder::command('./non-executable.sh')
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
@@ -100,7 +100,7 @@ final class ProcessTest extends TestCase
         $this->expectExceptionMessage('Terminated by SIGSEGV (11). (code: 139, command: ["sh","exit.sh","--sleep","5"])');
         $this->expectException(ProcessFailedException::class);
 
-        $process = Process::command(['sh', 'exit.sh', '--sleep', '5'])
+        $process = ProcessBuilder::command(['sh', 'exit.sh', '--sleep', '5'])
             ->inDirectory($this->getScriptsDir())
             ->start();
 
@@ -114,7 +114,7 @@ final class ProcessTest extends TestCase
         $this->expectExceptionMessage('Terminated by SIGKILL (9). (code: 137, command: ["sh","exit.sh","--sleep","5"])');
         $this->expectException(ProcessFailedException::class);
 
-        $process = Process::command(['sh', 'exit.sh', '--sleep', '5'])
+        $process = ProcessBuilder::command(['sh', 'exit.sh', '--sleep', '5'])
             ->inDirectory($this->getScriptsDir())
             ->start();
 
@@ -127,7 +127,7 @@ final class ProcessTest extends TestCase
     {
         $process1 = null;
         foreach (range(0, 10) as $i) {
-            $process1 = Process::command(['sh', 'exit.sh', '--sleep', '1'])
+            $process1 = ProcessBuilder::command(['sh', 'exit.sh', '--sleep', '1'])
                 ->inDirectory($this->getScriptsDir())
                 ->start();
             usleep(1000);
@@ -135,7 +135,7 @@ final class ProcessTest extends TestCase
 
         sleep(3);
 
-        $process2 = Process::command(['sh', 'exit.sh', '--sleep', '1'])
+        $process2 = ProcessBuilder::command(['sh', 'exit.sh', '--sleep', '1'])
             ->inDirectory($this->getScriptsDir())
             ->start();
 

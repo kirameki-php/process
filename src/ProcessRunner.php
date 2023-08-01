@@ -49,22 +49,19 @@ class ProcessRunner implements IteratorAggregate
      * @param resource $process
      * @param ProcessObserver $observer
      * @param ProcessInfo $info
-     * @param int $pid
      * @param array<int, resource> $pipes
-     * @param list<Closure(ProcessResult): mixed> $completeCallbacks
-     * @param Closure(ProcessResult): bool|null $onFailure
+     * @param list<Closure(ProcessResult): mixed> $onCompletedCallbacks
      * @param ProcessResult|null $result
      */
     public function __construct(
         protected readonly mixed $process,
         protected ProcessObserver $observer,
         public readonly ProcessInfo $info,
-        public int $pid,
         protected readonly array $pipes,
-        protected readonly array $completeCallbacks,
-        protected readonly ?Closure $onFailure,
+        protected readonly array $onCompletedCallbacks,
         protected ?ProcessResult $result = null,
-    ) {
+    )
+    {
         $this->stdout = $this->makeStdioStream();
         $this->stderr = $this->makeStdioStream();
 
@@ -74,7 +71,7 @@ class ProcessRunner implements IteratorAggregate
             }
         }
 
-        $observer->onSignal($this->pid, $this->onSigChld(...));
+        $observer->onSignal($this->info->pid, $this->onSigChld(...));
     }
 
     /**
@@ -233,7 +230,7 @@ class ProcessRunner implements IteratorAggregate
     {
         $result = $this->result = $this->buildResult($code);
 
-        foreach ($this->completeCallbacks as $callback) {
+        foreach ($this->onCompletedCallbacks as $callback) {
             $callback($result);
         }
 
@@ -241,7 +238,7 @@ class ProcessRunner implements IteratorAggregate
             return;
         }
 
-        throw new ProcessFailedException($this->info->command, $code, [
+        throw new ProcessFailedException($this->info->definedCommand, $code, [
             'result' => $result,
         ]);
     }
@@ -297,7 +294,6 @@ class ProcessRunner implements IteratorAggregate
     {
         return new ProcessResult(
             $this->info,
-            $this->pid,
             $exitCode,
             $this->stdin,
             $this->stdout,

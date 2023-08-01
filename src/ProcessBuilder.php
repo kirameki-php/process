@@ -4,20 +4,26 @@ namespace Kirameki\Process;
 
 use Closure;
 use Kirameki\Core\Exceptions\RuntimeException;
+use Kirameki\Event\EventHandler;
+use Kirameki\Process\Events\ProcessStarted;
 use Kirameki\Stream\FileStream;
 use function array_keys;
 use function array_map;
+use function array_merge;
 use function getcwd;
+use function implode;
+use function is_array;
 use function proc_get_status;
 use function proc_open;
+use function sprintf;
 use const SIGTERM;
 
-/**
- * @phpstan-consistent-constructor
- */
-class Process
+class ProcessBuilder
 {
     /**
+     * @internal use Factory::command() to generate commands.
+     *
+     * @param EventHandler $eventHandler
      * @param string|array<int, string> $command
      * @param string|null $directory
      * @param array<string, string>|null $envs
@@ -26,10 +32,10 @@ class Process
      * @param array<int, int> $exceptedExitCodes
      * @param FileStream|null $stdout
      * @param FileStream|null $stderr
-     * @param array<int, Closure(ProcessResult): mixed> $completeCallbacks
-     * @param Closure(ProcessResult): bool|null $onFailure
+     * @param array<int, Closure(ProcessResult): mixed> $onCompletedCallbacks
      */
-    protected function __construct(
+    public function __construct(
+        protected EventHandler $eventHandler,
         protected string|array $command,
         protected ?string $directory = null,
         protected ?array $envs = null,
@@ -38,18 +44,9 @@ class Process
         protected ?array $exceptedExitCodes = null,
         protected ?FileStream $stdout = null,
         protected ?FileStream $stderr = null,
-        protected readonly array $completeCallbacks = [],
-        protected ?Closure $onFailure = null,
-    ) {
-    }
-
-    /**
-     * @param string|array<int, string> $command
-     * @return static
-     */
-    public static function command(string|array $command): static
+        protected array $onCompletedCallbacks = [],
+    )
     {
-        return new static($command);
     }
 
     /**
@@ -110,12 +107,12 @@ class Process
     }
 
     /**
-     * @param Closure(int): bool $callback
+     * @param Closure(ProcessResult): bool $callback
      * @return $this
      */
-    public function onFailure(Closure $callback): static
+    public function onCompleted(Closure $callback): static
     {
-        $this->onFailure = $callback;
+        $this->onCompletedCallbacks[] = $callback;
         return $this;
     }
 
@@ -124,9 +121,9 @@ class Process
      */
     public function start(): ProcessRunner
     {
-        $info = $this->buildInfo();
+        $shellCommand = $this->buildShellCommand();
 
-        $envs = $info->envs;
+        $envs = $this->envs;
         $envVars = $envs !== null
             ? array_map(static fn($k, $v) => "{$k}={$v}", array_keys($envs), $envs)
             : null;
@@ -136,45 +133,94 @@ class Process
         $observer = ProcessObserver::observeSignal();
 
         $process = proc_open(
-            $info->getFullCommand(),
+            $shellCommand,
             $this->getFileDescriptorSpec(),
             $pipes,
-            $info->workingDirectory,
+            $this->directory,
             $envVars,
         );
 
         if ($process === false) {
             throw new RuntimeException('Failed to start process.', [
-                'info' => $info,
+                'info' => $this->buildInfo($shellCommand, -1),
             ]);
         }
 
         $pid = proc_get_status($process)['pid'];
 
+        $info = $this->buildInfo($shellCommand, $pid);
+
+        $this->eventHandler->dispatch(new ProcessStarted($info));
+
         return new ProcessRunner(
             $process,
             $observer,
             $info,
-            $pid,
             $pipes,
-            $this->completeCallbacks,
-            $this->onFailure,
+            $this->onCompletedCallbacks,
         );
     }
 
     /**
+     * @param string|list<string> $executedCommand
+     * @param int $pid
      * @return ProcessInfo
      */
-    protected function buildInfo(): ProcessInfo
+    protected function buildInfo(string|array $executedCommand, int $pid): ProcessInfo
     {
         return new ProcessInfo(
             $this->command,
+            $executedCommand,
             $this->directory ?? (string) getcwd(),
             $this->envs,
             $this->timeout,
             $this->termSignal ?? SIGTERM,
             $this->exceptedExitCodes ?? [ExitCode::SUCCESS],
+            $pid,
         );
+    }
+
+    /**
+     * @return string|array<int, string>
+     */
+    public function buildShellCommand(): string|array
+    {
+        $timeoutCommand = $this->buildTimeoutCommand();
+        $command = $this->command;
+
+        return is_array($command)
+            ? array_merge($timeoutCommand, $command)
+            : implode(' ', $timeoutCommand) . ' ' . $command;
+    }
+
+    /**
+     * @see https://man7.org/linux/man-pages/man1/timeout.1.html
+     * @return array<int, string>
+     */
+    protected function buildTimeoutCommand(): array
+    {
+        $timeout = $this->timeout;
+
+        if ($timeout === null) {
+            return [];
+        }
+
+        $command = ['timeout'];
+
+        if ($timeout->signal !== SIGTERM) {
+            $command[] = '--signal';
+            $command[] = (string) $timeout->signal;
+        }
+
+        if ($timeout->killAfterSeconds !== null) {
+            $command[] = '--kill-after';
+            $command[] = "{$timeout->killAfterSeconds}s";
+        }
+
+        $timeoutSeconds = (float) sprintf("%.3f", $timeout->durationSeconds);
+        $command[] = "{$timeoutSeconds}s";
+
+        return $command;
     }
 
     /**
