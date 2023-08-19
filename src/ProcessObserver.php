@@ -56,10 +56,7 @@ class ProcessObserver
         // only register signal handler if there are no more signals.
         if (static::$processCount === 0) {
             pcntl_async_signals(true);
-            //Signal::handle(SIGCHLD, $self->handleSignal(...));
-            pcntl_signal(SIGCHLD, function($info) {
-                dump($info);
-            }, false);
+            Signal::handle(SIGCHLD, $self->handleSignal(...));
         }
 
         static::$processCount++;
