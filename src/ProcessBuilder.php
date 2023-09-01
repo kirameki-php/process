@@ -130,7 +130,7 @@ class ProcessBuilder
 
         // Observation of exit MUST be started before proc_open() is called.
         // @see ProcessObserver::observeSignal() for more info.
-        $observer = ProcessObserver::observeSignal();
+        $observer = ProcessObserver::observe();
 
         $process = proc_open(
             $shellCommand,

@@ -71,7 +71,7 @@ class ProcessRunner implements IteratorAggregate
             }
         }
 
-        $observer->onSignal($this->info->pid, $this->onSigChld(...));
+        $observer->onExit($this->info->pid, $this->onSigChld(...));
     }
 
     /**
