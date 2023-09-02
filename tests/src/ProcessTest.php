@@ -26,7 +26,7 @@ final class ProcessTest extends TestCase
 
     public function test_command(): void
     {
-        $result = ProcessBuilder::command(['sh', 'exit.sh', '0'])
+        $result = (new ProcessBuilder(['sh', 'exit.sh', '0']))
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();

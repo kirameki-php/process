@@ -2,19 +2,18 @@
 
 namespace Kirameki\Process\Events;
 
-use Kirameki\Event\Event;
+use Kirameki\Core\Event;
 use Kirameki\Process\ProcessInfo;
-use Kirameki\Process\ProcessResult;
 
 class ProcessFinished extends Event
 {
     /**
      * @param ProcessInfo $info
-     * @param ProcessResult $result
+     * @param int $exitCode
      */
     public function __construct(
-        public readonly ProcessInfo $info,
-        public readonly ProcessResult $result,
+        public ProcessInfo $info,
+        public int $exitCode,
     )
     {
     }

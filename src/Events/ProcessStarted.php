@@ -2,7 +2,7 @@
 
 namespace Kirameki\Process\Events;
 
-use Kirameki\Event\Event;
+use Kirameki\Core\Event;
 use Kirameki\Process\ProcessInfo;
 
 class ProcessStarted extends Event

@@ -4,7 +4,9 @@ namespace Kirameki\Process;
 
 use Closure;
 use IteratorAggregate;
+use Kirameki\Core\EventHandler;
 use Kirameki\Core\Exceptions\UnreachableException;
+use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Stream\FileStream;
 use Kirameki\Stream\TempStream;
@@ -50,7 +52,7 @@ class ProcessRunner implements IteratorAggregate
      * @param ProcessObserver $observer
      * @param ProcessInfo $info
      * @param array<int, resource> $pipes
-     * @param list<Closure(ProcessResult): mixed> $onCompletedCallbacks
+     * @param EventHandler<ProcessFinished> $onFinished
      * @param ProcessResult|null $result
      */
     public function __construct(
@@ -58,7 +60,7 @@ class ProcessRunner implements IteratorAggregate
         protected ProcessObserver $observer,
         public readonly ProcessInfo $info,
         protected readonly array $pipes,
-        protected readonly array $onCompletedCallbacks,
+        protected readonly ?EventHandler $onFinished,
         protected ?ProcessResult $result = null,
     )
     {
@@ -228,11 +230,9 @@ class ProcessRunner implements IteratorAggregate
      */
     protected function handleExit(int $code): void
     {
-        $result = $this->result = $this->buildResult($code);
+        $this->onFinished?->dispatch(new ProcessFinished($this->info, $code));
 
-        foreach ($this->onCompletedCallbacks as $callback) {
-            $callback($result);
-        }
+        $result = $this->result = $this->buildResult($code);
 
         if (in_array($code, $this->info->exceptedExitCodes, true)) {
             return;

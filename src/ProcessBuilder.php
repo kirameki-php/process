@@ -3,8 +3,9 @@
 namespace Kirameki\Process;
 
 use Closure;
+use Kirameki\Core\EventHandler;
 use Kirameki\Core\Exceptions\RuntimeException;
-use Kirameki\Event\EventHandler;
+use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Events\ProcessStarted;
 use Kirameki\Stream\FileStream;
 use function array_keys;
@@ -21,9 +22,18 @@ use const SIGTERM;
 class ProcessBuilder
 {
     /**
+     * @var EventHandler<ProcessStarted>|null
+     */
+    protected ?EventHandler $onStarted = null;
+
+    /**
+     * @var EventHandler<ProcessFinished>|null
+     */
+    protected ?EventHandler $onFinished = null;
+
+    /**
      * @internal use Factory::command() to generate commands.
      *
-     * @param EventHandler $eventHandler
      * @param string|array<int, string> $command
      * @param string|null $directory
      * @param array<string, string>|null $envs
@@ -32,10 +42,8 @@ class ProcessBuilder
      * @param array<int, int> $exceptedExitCodes
      * @param FileStream|null $stdout
      * @param FileStream|null $stderr
-     * @param array<int, Closure(ProcessResult): mixed> $onCompletedCallbacks
      */
     public function __construct(
-        protected EventHandler $eventHandler,
         protected string|array $command,
         protected ?string $directory = null,
         protected ?array $envs = null,
@@ -44,7 +52,6 @@ class ProcessBuilder
         protected ?array $exceptedExitCodes = null,
         protected ?FileStream $stdout = null,
         protected ?FileStream $stderr = null,
-        protected array $onCompletedCallbacks = [],
     )
     {
     }
@@ -107,12 +114,22 @@ class ProcessBuilder
     }
 
     /**
-     * @param Closure(ProcessResult): bool $callback
+     * @param Closure(ProcessStarted): mixed $callback
      * @return $this
      */
-    public function onCompleted(Closure $callback): static
+    public function onStarted(Closure $callback): static
     {
-        $this->onCompletedCallbacks[] = $callback;
+        ($this->onStarted ??= new EventHandler(ProcessStarted::class))->listen($callback);
+        return $this;
+    }
+
+    /**
+     * @param Closure(ProcessFinished): mixed $callback
+     * @return $this
+     */
+    public function onFinished(Closure $callback): static
+    {
+        ($this->onFinished ??= new EventHandler(ProcessFinished::class))->listen($callback);
         return $this;
     }
 
@@ -150,7 +167,7 @@ class ProcessBuilder
 
         $info = $this->buildInfo($shellCommand, $pid);
 
-        $this->eventHandler->dispatch(new ProcessStarted($info));
+        $this->onStarted?->dispatch(new ProcessStarted($info));
 
         return new ProcessRunner(
             $process,
