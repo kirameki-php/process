@@ -38,69 +38,69 @@ final class ProcessTest extends TestCase
         self::assertTrue($result->succeeded());
         self::assertFalse($result->failed());
     }
-//
-//    public function test_exitCode_general_error(): void
-//    {
-//        $this->expectExceptionMessage('General error. (code: 1, command: ["sh","exit.sh","1"])');
-//        $this->expectException(ProcessFailedException::class);
-//
-//        Process::command(['sh', 'exit.sh', '1'])
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//    }
-//
-//    public function test_command_missing_sh_file(): void
-//    {
-//        $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: ["sh","non-existent.sh"])');
-//        $this->expectException(ProcessFailedException::class);
-//
-//        Process::command(['sh', 'non-existent.sh'])
-//            ->start()
-//            ->wait();
-//    }
-//
-    public function test_command_has_no_permission(): void
+
+    public function test_exitCode_general_error(): void
     {
-        $this->expectExceptionMessage('Permission denied. (code: 126, command: "./non-executable.sh")');
+        $this->expectExceptionMessage('General error. (code: 1, command: ["sh","exit.sh","1"])');
         $this->expectException(ProcessFailedException::class);
 
-        ProcessBuilder::command('./non-executable.sh')
+        (new ProcessBuilder(['sh', 'exit.sh', '1']))
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
     }
 
-//    public function test_command_missing_script(): void
-//    {
-//        $this->expectExceptionMessage('Command not found. (code: 127, command: ["noop.sh"])');
-//        $this->expectException(ProcessFailedException::class);
-//
-//        Process::command(['noop.sh'])
-//            ->start()
-//            ->wait();
-//    }
-//
-//    public function test_command_signal_on_running_process(): void
-//    {
-//        $process = Process::command(['sh', 'exit.sh', '--sleep', '5'])
-//            ->inDirectory($this->getScriptsDir())
-//            ->start();
-//
-//        self::assertTrue($process->signal(SIGHUP));
-//
-//        $process->wait();
-//
-//        // try to signal again should return false.
-//        self::assertFalse($process->signal(SIGHUP));
-//    }
-//
+    public function test_command_missing_sh_file(): void
+    {
+        $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: ["sh","non-existent.sh"])');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder('./non-existent.sh'))
+            ->start()
+            ->wait();
+    }
+
+    public function test_command_has_no_permission(): void
+    {
+        $this->expectExceptionMessage('Permission denied. (code: 126, command: "./non-executable.sh")');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder('./non-executable.sh'))
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
+    public function test_command_missing_script(): void
+    {
+        $this->expectExceptionMessage('Command not found. (code: 127, command: ["noop.sh"])');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder('./noop.sh'))
+            ->start()
+            ->wait();
+    }
+
+    public function test_command_signal_on_running_process(): void
+    {
+        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '5']))
+            ->inDirectory($this->getScriptsDir())
+            ->start();
+
+        self::assertTrue($process->signal(SIGHUP));
+
+        $process->wait();
+
+        // try to signal again should return false.
+        self::assertFalse($process->signal(SIGHUP));
+    }
+
     public function test_command_signal_on_segfault_process(): void
     {
         $this->expectExceptionMessage('Terminated by SIGSEGV (11). (code: 139, command: ["sh","exit.sh","--sleep","5"])');
         $this->expectException(ProcessFailedException::class);
 
-        $process = ProcessBuilder::command(['sh', 'exit.sh', '--sleep', '5'])
+        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '5']))
             ->inDirectory($this->getScriptsDir())
             ->start();
 
@@ -114,7 +114,7 @@ final class ProcessTest extends TestCase
         $this->expectExceptionMessage('Terminated by SIGKILL (9). (code: 137, command: ["sh","exit.sh","--sleep","5"])');
         $this->expectException(ProcessFailedException::class);
 
-        $process = ProcessBuilder::command(['sh', 'exit.sh', '--sleep', '5'])
+        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '5']))
             ->inDirectory($this->getScriptsDir())
             ->start();
 
@@ -127,7 +127,7 @@ final class ProcessTest extends TestCase
     {
         $process1 = null;
         foreach (range(0, 10) as $i) {
-            $process1 = ProcessBuilder::command(['sh', 'exit.sh', '--sleep', '1'])
+            $process1 = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
                 ->inDirectory($this->getScriptsDir())
                 ->start();
             usleep(1000);
@@ -135,13 +135,12 @@ final class ProcessTest extends TestCase
 
         sleep(3);
 
-        $process2 = ProcessBuilder::command(['sh', 'exit.sh', '--sleep', '1'])
+        $process2 = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
             ->inDirectory($this->getScriptsDir())
             ->start();
 
         $process2->wait();
 
         $process1->wait();
-
     }
 }
