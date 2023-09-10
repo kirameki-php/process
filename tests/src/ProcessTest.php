@@ -67,7 +67,7 @@ final class ProcessTest extends TestCase
         $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: "sh ./missing-keyword.sh")');
         $this->expectException(ProcessFailedException::class);
 
-        (new ProcessBuilder('sh ./missing-keyword.sh'))
+        (new ProcessBuilder(['sh', './missing-keyword.sh']))
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
@@ -75,7 +75,7 @@ final class ProcessTest extends TestCase
 
     public function test_command_invalid_usage_catch(): void
     {
-        $process = (new ProcessBuilder('sh ./missing-keyword.sh'))
+        $process = (new ProcessBuilder(['sh', './missing-keyword.sh']))
             ->exceptedExitCodes(ExitCode::INVALID_USAGE)
             ->inDirectory($this->getScriptsDir())
             ->start()
