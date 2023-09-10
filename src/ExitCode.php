@@ -16,21 +16,4 @@ class ExitCode
     public const SIGKILL = 137;
     public const SIGSEGV = 139;
     public const SIGTERM = 143;
-
-    /**
-     * @return list<int>
-     */
-    public static function defaultFailureCodes(): array
-    {
-        return [
-            ExitCode::GENERAL_ERROR,
-            ExitCode::INVALID_USAGE,
-            ExitCode::TIMED_OUT,
-            ExitCode::TIMEOUT_COMMAND_FAILED,
-            ExitCode::COMMAND_NOT_EXECUTABLE,
-            ExitCode::COMMAND_NOT_FOUND,
-            ExitCode::SIGSEGV,
-            ExitCode::SIGKILL,
-        ];
-    }
 }

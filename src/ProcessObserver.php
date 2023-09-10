@@ -7,6 +7,8 @@ use Kirameki\Core\Signal;
 use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessException;
 use function array_key_exists;
+use function dump;
+use const CLD_KILLED;
 use const SIGCHLD;
 
 /**
@@ -85,13 +87,16 @@ class ProcessObserver
         $info = $event->info;
         $pid = $info['pid'];
         $exitCode = $info['status'];
-        if ($info['code'] === 2) {
+        if ($info['code'] === CLD_KILLED) {
             $exitCode += 128;
         }
 
-        array_key_exists($pid, $this->exitCallbacks)
-            ? $this->invokeAndDeregister($pid, $exitCode)
-            : $this->exitedBeforeRegistered[$pid] = $exitCode;
+        if (array_key_exists($pid, $this->exitCallbacks)) {
+            ($this->exitCallbacks[$pid])($exitCode);
+            unset($this->exitCallbacks[$pid]);
+        } else {
+            $this->exitedBeforeRegistered[$pid] = $exitCode;
+        }
     }
 
     /**
@@ -105,24 +110,13 @@ class ProcessObserver
             throw new ProcessException('Callback already registered for pid: ' . $pid);
         }
 
-        $this->exitCallbacks[$pid] = $callback;
-
         // if the process was already triggered, run the callback immediately.
         if (array_key_exists($pid, $this->exitedBeforeRegistered)) {
             $exitCode = $this->exitedBeforeRegistered[$pid];
             unset($this->exitedBeforeRegistered[$pid]);
-            $this->invokeAndDeregister($pid, $exitCode);
+            $callback($exitCode);
+        } else {
+            $this->exitCallbacks[$pid] = $callback;
         }
-    }
-
-    /**
-     * @param int $pid
-     * @param int $exitCode
-     * @return void
-     */
-    protected function invokeAndDeregister(int $pid, int $exitCode): void
-    {
-        ($this->exitCallbacks[$pid])($exitCode);
-        unset($this->exitCallbacks[$pid]);
     }
 }

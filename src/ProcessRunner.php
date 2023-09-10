@@ -234,7 +234,7 @@ class ProcessRunner implements IteratorAggregate
 
         $result = $this->result = $this->buildResult($code);
 
-        if (in_array($code, $this->info->exceptedExitCodes, true)) {
+        if ($code === ExitCode::SUCCESS || in_array($code, $this->info->exceptedExitCodes, true)) {
             return;
         }
 

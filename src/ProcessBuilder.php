@@ -11,6 +11,7 @@ use Kirameki\Stream\FileStream;
 use function array_keys;
 use function array_map;
 use function array_merge;
+use function array_values;
 use function getcwd;
 use function implode;
 use function is_array;
@@ -104,12 +105,12 @@ class ProcessBuilder
     }
 
     /**
-     * @param array<int, int> $codes
+     * @param int ...$codes
      * @return $this
      */
-    public function exceptedExitCodes(?array $codes): static
+    public function exceptedExitCodes(int ...$codes): static
     {
-        $this->exceptedExitCodes = $codes;
+        $this->exceptedExitCodes = array_values($codes);
         return $this;
     }
 
@@ -174,7 +175,7 @@ class ProcessBuilder
             $observer,
             $info,
             $pipes,
-            $this->onCompletedCallbacks,
+            $this->onFinished,
         );
     }
 
@@ -192,7 +193,7 @@ class ProcessBuilder
             $this->envs,
             $this->timeout,
             $this->termSignal ?? SIGTERM,
-            $this->exceptedExitCodes ?? [ExitCode::SUCCESS],
+            $this->exceptedExitCodes ?? [],
             $pid,
         );
     }
