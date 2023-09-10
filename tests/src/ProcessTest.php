@@ -30,12 +30,57 @@ final class ProcessTest extends TestCase
             ->start()
             ->wait();
 
-        self::assertSame(0, $result->exitCode);
-        self::assertNull($result->info->envs);
-        self::assertSame(SIGTERM, $result->info->termSignal);
-        self::assertSame('/app/tests/scripts', $result->info->workingDirectory);
-        self::assertTrue($result->succeeded());
-        self::assertFalse($result->failed());
+        $this->assertSame(0, $result->exitCode);
+        $this->assertNull($result->info->envs);
+        $this->assertSame(SIGTERM, $result->info->termSignal);
+        $this->assertSame('/app/tests/scripts', $result->info->workingDirectory);
+        $this->assertSame([], $result->info->exceptedExitCodes);
+        $this->assertIsInt($result->info->pid);
+        $this->assertTrue($result->succeeded());
+        $this->assertFalse($result->failed());
+    }
+
+    public function test_command_change_expected_exit_code(): void
+    {
+        $result = (new ProcessBuilder(['sh', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
+            ->exceptedExitCodes(ExitCode::GENERAL_ERROR)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(ExitCode::GENERAL_ERROR, $result->exitCode);
+        $this->assertSame([ExitCode::GENERAL_ERROR], $result->info->exceptedExitCodes);
+        $this->assertFalse($result->succeeded());
+        $this->assertTrue($result->failed());
+    }
+
+    public function test_command_add_envs(): void
+    {
+        $envs = ['FOO' => 'BAR', 'BAZ' => 'QUX'];
+
+        $result = (new ProcessBuilder(['sh', 'exit.sh']))
+            ->envs($envs)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame($envs, $result->info->envs);
+        $this->assertTrue($result->succeeded());
+    }
+
+    public function test_command_set_term_signal(): void
+    {
+        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '2']))
+            ->exceptedExitCodes(ExitCode::SIGINT)
+            ->termSignal(SIGINT)
+            ->inDirectory($this->getScriptsDir())
+            ->start();
+
+        $this->assertTrue($process->terminate());
+        $result = $process->wait();
+        $this->assertFalse($process->terminate());
+        $this->assertSame(ExitCode::SIGINT, $result->exitCode);
+        $this->assertSame(SIGINT, $result->info->termSignal);
     }
 
     public function test_exitCode_general_error_exception(): void
@@ -64,7 +109,7 @@ final class ProcessTest extends TestCase
 
     public function test_command_invalid_usage_error(): void
     {
-        $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: "sh ./missing-keyword.sh")');
+        $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: ["sh","./missing-keyword.sh"])');
         $this->expectException(ProcessFailedException::class);
 
         (new ProcessBuilder(['sh', './missing-keyword.sh']))
@@ -111,32 +156,36 @@ final class ProcessTest extends TestCase
 
     public function test_command_timed_out_catch(): void
     {
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+        $result = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
             ->timeout(0.01)
             ->exceptedExitCodes(ExitCode::TIMED_OUT)
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
 
-        $this->assertSame(ExitCode::TIMED_OUT, $process->exitCode);
-        $this->assertFalse($process->succeeded());
-        $this->assertTrue($process->failed());
-        $this->assertTrue($process->timedOut());
+        $this->assertSame(['timeout', '--kill-after', '10s', '0.01s', 'sh', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
+        $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
+        $this->assertSame(0.01, $result->info->timeout?->durationSeconds);
+        $this->assertSame(SIGTERM, $result->info->timeout->signal);
+        $this->assertSame(10.0, $result->info->timeout->killAfterSeconds);
+        $this->assertFalse($result->succeeded());
+        $this->assertTrue($result->failed());
+        $this->assertTrue($result->timedOut());
     }
 
     public function test_command_timeout_command_error(): void
     {
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+        $result = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
             ->timeout(-0.01)
             ->exceptedExitCodes(ExitCode::TIMEOUT_COMMAND_FAILED)
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
 
-        $this->assertSame(ExitCode::TIMEOUT_COMMAND_FAILED, $process->exitCode);
-        $this->assertFalse($process->succeeded());
-        $this->assertTrue($process->failed());
-        $this->assertFalse($process->timedOut());
+        $this->assertSame(ExitCode::TIMEOUT_COMMAND_FAILED, $result->exitCode);
+        $this->assertFalse($result->succeeded());
+        $this->assertTrue($result->failed());
+        $this->assertFalse($result->timedOut());
     }
 
     public function test_command_missing_script(): void
@@ -156,12 +205,12 @@ final class ProcessTest extends TestCase
             ->exceptedExitCodes(ExitCode::SIGHUP)
             ->start();
 
-        self::assertTrue($process->signal(SIGHUP));
+        $this->assertTrue($process->signal(SIGHUP));
 
         $process->wait();
 
         // try to signal again should return false.
-        self::assertFalse($process->signal(SIGHUP));
+        $this->assertFalse($process->signal(SIGHUP));
     }
 
     public function test_command_sigint_on_running_process(): void
@@ -173,7 +222,7 @@ final class ProcessTest extends TestCase
             ->inDirectory($this->getScriptsDir())
             ->start();
 
-        self::assertTrue($process->signal(SIGINT));
+        $this->assertTrue($process->signal(SIGINT));
 
         $process->wait();
     }
@@ -187,7 +236,7 @@ final class ProcessTest extends TestCase
             ->inDirectory($this->getScriptsDir())
             ->start();
 
-        self::assertTrue($process->signal(SIGSEGV));
+        $this->assertTrue($process->signal(SIGSEGV));
 
         $process->wait();
     }
@@ -201,7 +250,7 @@ final class ProcessTest extends TestCase
             ->inDirectory($this->getScriptsDir())
             ->start();
 
-        self::assertTrue($process->signal(SIGKILL));
+        $this->assertTrue($process->signal(SIGKILL));
 
         $process->wait();
     }
