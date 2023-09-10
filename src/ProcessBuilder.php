@@ -159,9 +159,11 @@ class ProcessBuilder
         );
 
         if ($process === false) {
+            // @codeCoverageIgnoreStart
             throw new RuntimeException('Failed to start process.', [
                 'info' => $this->buildInfo($shellCommand, -1),
             ]);
+            // @codeCoverageIgnoreEnd
         }
 
         $pid = proc_get_status($process)['pid'];

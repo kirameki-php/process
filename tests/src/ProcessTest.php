@@ -173,6 +173,34 @@ final class ProcessTest extends TestCase
         $this->assertTrue($result->timedOut());
     }
 
+    public function test_command_timed_out_disable_timeout(): void
+    {
+        $result = (new ProcessBuilder(['sh', 'exit.sh']))
+            ->timeout(0.01)->timeout(null)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(['sh', 'exit.sh'], $result->info->executedCommand);
+        $this->assertSame(ExitCode::SUCCESS, $result->exitCode);
+        $this->assertNull($result->info->timeout);
+        $this->assertFalse($result->timedOut());
+    }
+
+    public function test_command_timed_out_change_signal(): void
+    {
+        $result = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+            ->timeout(0.01, SIGINT, null)
+            ->exceptedExitCodes(ExitCode::TIMED_OUT)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(['timeout', '--signal', (string) SIGINT, '0.01s', 'sh', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
+        $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
+        $this->assertSame(SIGINT, $result->info->timeout?->signal);
+    }
+
     public function test_command_timeout_command_error(): void
     {
         $result = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
