@@ -8,6 +8,8 @@ use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessException;
 use function array_key_exists;
 use function dump;
+use function in_array;
+use const CLD_EXITED;
 use const CLD_KILLED;
 use const SIGCHLD;
 
@@ -76,19 +78,25 @@ class ProcessObserver
      */
     protected function handleSignal(SignalEvent $event): void
     {
+        /** @var array{ pid: int, status: int, code: int } $info */
+        $info = $event->info;
+
+        // Only respond to exit and kill code.
+        if (!in_array($info['code'], [CLD_EXITED, CLD_KILLED], true)) {
+            return;
+        }
+
+        $pid = $info['pid'];
+        $exitCode = $info['status'];
+        if ($info['code'] === CLD_KILLED) {
+            $exitCode += 128;
+        }
+
         static::$processCount--;
 
         // evict handler if there's no more processes to wait for.
         if (static::$processCount === 0) {
             $event->evictCallback();
-        }
-
-        /** @var array{ pid: int, status: int, code: int } $info */
-        $info = $event->info;
-        $pid = $info['pid'];
-        $exitCode = $info['status'];
-        if ($info['code'] === CLD_KILLED) {
-            $exitCode += 128;
         }
 
         if (array_key_exists($pid, $this->exitCallbacks)) {

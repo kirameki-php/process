@@ -2,7 +2,6 @@
 
 namespace Tests\Kirameki\Process;
 
-use Kirameki\Core\Testing\TestCase;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Process\ExitCode;
 use Kirameki\Process\ProcessBuilder;
@@ -15,14 +14,6 @@ use const SIGTERM;
 
 final class ProcessTest extends TestCase
 {
-    /**
-     * @return string
-     */
-    protected function getScriptsDir(): string
-    {
-        return dirname(__DIR__) . '/scripts';
-    }
-
     public function test_command_success(): void
     {
         $result = (new ProcessBuilder(['sh', 'exit.sh', '0']))
@@ -282,6 +273,21 @@ final class ProcessTest extends TestCase
 
         $process->wait();
     }
+
+    public function test_command_signal_on_terminated_process_with_timeout(): void
+    {
+        $process = (new ProcessBuilder(['sh', 'trap-sigterm.sh']))
+            ->exceptedExitCodes(ExitCode::SIGKILL)
+            ->inDirectory($this->getScriptsDir())
+            ->start();
+
+        $signaled = $process->terminate(0.01);
+        $result = $process->wait();
+
+        $this->assertTrue($signaled);
+        $this->assertSame(ExitCode::SIGKILL, $result->exitCode);
+    }
+
 //
 //    public function test_test(): void
 //    {
