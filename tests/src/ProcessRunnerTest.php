@@ -50,30 +50,4 @@ final class ProcessRunnerTest extends TestCase
 
         $this->assertTrue($process->isDone());
     }
-
-    public function test_test(): void
-    {
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
-            ->exceptedExitCodes(ExitCode::SIGKILL)
-            ->inDirectory($this->getScriptsDir())
-            ->start();
-
-        $process->signal(SIGSTOP);
-
-        dump($process->isStopped());
-
-        sleep(3);
-
-        dump($process->isStopped());
-
-        $this->assertTrue($process->isStopped());
-
-        $process->signal(SIGCONT);
-
-        $this->assertFalse($process->isStopped());
-
-        $process->wait();
-
-        $this->assertTrue($process->isDone());
-    }
 }

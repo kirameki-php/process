@@ -101,14 +101,6 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
-     * @return bool
-     */
-    public function isStopped(): bool
-    {
-        return proc_get_status($this->process)['stopped'];
-    }
-
-    /**
      * @return Traversable<int, string>
      */
     public function getIterator(): Traversable
