@@ -2,22 +2,9 @@
 
 namespace Tests\Kirameki\Process;
 
-use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Process\ExitCode;
 use Kirameki\Process\ProcessBuilder;
-use function dirname;
-use function dump;
-use function proc_close;
-use function proc_open;
-use function proc_terminate;
-use function sleep;
-use const SIGCONT;
-use const SIGHUP;
-use const SIGINT;
 use const SIGKILL;
-use const SIGSEGV;
-use const SIGSTOP;
-use const SIGTERM;
 
 final class ProcessRunnerTest extends TestCase
 {
