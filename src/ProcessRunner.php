@@ -2,7 +2,6 @@
 
 namespace Kirameki\Process;
 
-use Closure;
 use IteratorAggregate;
 use Kirameki\Core\EventHandler;
 use Kirameki\Core\Exceptions\UnreachableException;
@@ -10,13 +9,12 @@ use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Stream\FileStream;
 use Kirameki\Stream\TempStream;
-use Traversable;
+use Iterator;
 use function fwrite;
 use function in_array;
 use function is_int;
 use function is_resource;
 use function proc_close;
-use function proc_get_status;
 use function proc_terminate;
 use function stream_get_contents;
 use function stream_select;
@@ -101,9 +99,9 @@ class ProcessRunner implements IteratorAggregate
     }
 
     /**
-     * @return Traversable<int, string>
+     * @return Iterator<int, string>
      */
-    public function getIterator(): Traversable
+    public function getIterator(): Iterator
     {
         $read = [$this->pipes[1], $this->pipes[2]];
         $write = [];

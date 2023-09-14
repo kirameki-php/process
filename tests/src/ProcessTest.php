@@ -281,9 +281,13 @@ final class ProcessTest extends TestCase
             ->inDirectory($this->getScriptsDir())
             ->start();
 
+        // wait for the process to register trap.
+        $output = $process->getIterator()->current();
+
         $signaled = $process->terminate(0.01);
         $result = $process->wait();
 
+        $this->assertSame("trapped\n", $output);
         $this->assertTrue($signaled);
         $this->assertSame(ExitCode::SIGKILL, $result->exitCode);
     }

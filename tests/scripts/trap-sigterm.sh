@@ -7,6 +7,8 @@ function handle_sigterm()
 
 trap handle_sigterm SIGTERM
 
+echo "trapped"
+
 while true
 do
   sleep 5
