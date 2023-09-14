@@ -10,7 +10,7 @@ final class ProcessRunnerTest extends TestCase
 {
     public function test_isRunning(): void
     {
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '0.01']))
+        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '0.01']))
             ->exceptedExitCodes(ExitCode::SIGKILL)
             ->inDirectory($this->getScriptsDir())
             ->start();
@@ -25,7 +25,7 @@ final class ProcessRunnerTest extends TestCase
 
     public function test_isDone(): void
     {
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '0.01']))
+        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '0.01']))
             ->exceptedExitCodes(ExitCode::SIGKILL)
             ->inDirectory($this->getScriptsDir())
             ->start();

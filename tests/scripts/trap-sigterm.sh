@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -eux
 
 function handle_sigterm()
 {

@@ -5,7 +5,6 @@ namespace Tests\Kirameki\Process;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Process\ExitCode;
 use Kirameki\Process\ProcessBuilder;
-use function dirname;
 use const SIGHUP;
 use const SIGINT;
 use const SIGKILL;
@@ -16,7 +15,7 @@ final class ProcessTest extends TestCase
 {
     public function test_command_success(): void
     {
-        $result = (new ProcessBuilder(['sh', 'exit.sh', '0']))
+        $result = (new ProcessBuilder(['bash', 'exit.sh', '0']))
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
@@ -33,7 +32,7 @@ final class ProcessTest extends TestCase
 
     public function test_command_change_expected_exit_code(): void
     {
-        $result = (new ProcessBuilder(['sh', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
+        $result = (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
             ->exceptedExitCodes(ExitCode::GENERAL_ERROR)
             ->inDirectory($this->getScriptsDir())
             ->start()
@@ -49,7 +48,7 @@ final class ProcessTest extends TestCase
     {
         $envs = ['FOO' => 'BAR', 'BAZ' => 'QUX'];
 
-        $result = (new ProcessBuilder(['sh', 'exit.sh']))
+        $result = (new ProcessBuilder(['bash', 'exit.sh']))
             ->envs($envs)
             ->inDirectory($this->getScriptsDir())
             ->start()
@@ -61,7 +60,7 @@ final class ProcessTest extends TestCase
 
     public function test_command_set_term_signal(): void
     {
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '2']))
+        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '2']))
             ->exceptedExitCodes(ExitCode::SIGINT)
             ->termSignal(SIGINT)
             ->inDirectory($this->getScriptsDir())
@@ -76,10 +75,10 @@ final class ProcessTest extends TestCase
 
     public function test_exitCode_general_error_exception(): void
     {
-        $this->expectExceptionMessage('General error. (code: 1, command: ["sh","exit.sh","1"])');
+        $this->expectExceptionMessage('General error. (code: 1, command: ["bash","exit.sh","1"])');
         $this->expectException(ProcessFailedException::class);
 
-        (new ProcessBuilder(['sh', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
+        (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
@@ -87,7 +86,7 @@ final class ProcessTest extends TestCase
 
     public function test_exitCode_general_error_catch(): void
     {
-        $process = (new ProcessBuilder(['sh', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
+        $process = (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
             ->inDirectory($this->getScriptsDir())
             ->exceptedExitCodes(ExitCode::GENERAL_ERROR)
             ->start()
@@ -100,10 +99,10 @@ final class ProcessTest extends TestCase
 
     public function test_command_invalid_usage_error(): void
     {
-        $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: ["sh","./missing-keyword.sh"])');
+        $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: ["bash","./missing-keyword.sh"])');
         $this->expectException(ProcessFailedException::class);
 
-        (new ProcessBuilder(['sh', './missing-keyword.sh']))
+        (new ProcessBuilder(['bash', './missing-keyword.sh']))
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
@@ -111,7 +110,7 @@ final class ProcessTest extends TestCase
 
     public function test_command_invalid_usage_catch(): void
     {
-        $process = (new ProcessBuilder(['sh', './missing-keyword.sh']))
+        $process = (new ProcessBuilder(['bash', './missing-keyword.sh']))
             ->exceptedExitCodes(ExitCode::INVALID_USAGE)
             ->inDirectory($this->getScriptsDir())
             ->start()
@@ -135,10 +134,10 @@ final class ProcessTest extends TestCase
 
     public function test_command_timed_out_error(): void
     {
-        $this->expectExceptionMessage('Timed out. (code: 124, command: ["sh","exit.sh","--sleep","1"])');
+        $this->expectExceptionMessage('Timed out. (code: 124, command: ["bash","exit.sh","--sleep","1"])');
         $this->expectException(ProcessFailedException::class);
 
-        (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+        (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
             ->timeout(0.01)
             ->inDirectory($this->getScriptsDir())
             ->start()
@@ -147,14 +146,14 @@ final class ProcessTest extends TestCase
 
     public function test_command_timed_out_catch(): void
     {
-        $result = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+        $result = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
             ->timeout(0.01)
             ->exceptedExitCodes(ExitCode::TIMED_OUT)
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
 
-        $this->assertSame(['timeout', '--kill-after', '10s', '0.01s', 'sh', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
+        $this->assertSame(['timeout', '--kill-after', '10s', '0.01s', 'bash', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
         $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
         $this->assertSame(0.01, $result->info->timeout?->durationSeconds);
         $this->assertSame(SIGTERM, $result->info->timeout->signal);
@@ -166,13 +165,13 @@ final class ProcessTest extends TestCase
 
     public function test_command_timed_out_disable_timeout(): void
     {
-        $result = (new ProcessBuilder(['sh', 'exit.sh']))
+        $result = (new ProcessBuilder(['bash', 'exit.sh']))
             ->timeout(0.01)->timeout(null)
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
 
-        $this->assertSame(['sh', 'exit.sh'], $result->info->executedCommand);
+        $this->assertSame(['bash', 'exit.sh'], $result->info->executedCommand);
         $this->assertSame(ExitCode::SUCCESS, $result->exitCode);
         $this->assertNull($result->info->timeout);
         $this->assertFalse($result->timedOut());
@@ -180,21 +179,21 @@ final class ProcessTest extends TestCase
 
     public function test_command_timed_out_change_signal(): void
     {
-        $result = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+        $result = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
             ->timeout(0.01, SIGINT, null)
             ->exceptedExitCodes(ExitCode::TIMED_OUT)
             ->inDirectory($this->getScriptsDir())
             ->start()
             ->wait();
 
-        $this->assertSame(['timeout', '--signal', (string) SIGINT, '0.01s', 'sh', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
+        $this->assertSame(['timeout', '--signal', (string) SIGINT, '0.01s', 'bash', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
         $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
         $this->assertSame(SIGINT, $result->info->timeout?->signal);
     }
 
     public function test_command_timeout_command_error(): void
     {
-        $result = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+        $result = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
             ->timeout(-0.01)
             ->exceptedExitCodes(ExitCode::TIMEOUT_COMMAND_FAILED)
             ->inDirectory($this->getScriptsDir())
@@ -219,7 +218,7 @@ final class ProcessTest extends TestCase
 
     public function test_command_signal_on_running_process_as_success(): void
     {
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
             ->inDirectory($this->getScriptsDir())
             ->exceptedExitCodes(ExitCode::SIGHUP)
             ->start();
@@ -234,10 +233,10 @@ final class ProcessTest extends TestCase
 
     public function test_command_sigint_on_running_process(): void
     {
-        $this->expectExceptionMessage('Terminated by SIGINT (2). (code: 130, command: ["sh","exit.sh","--sleep","1"])');
+        $this->expectExceptionMessage('Terminated by SIGINT (2). (code: 130, command: ["bash","exit.sh","--sleep","1"])');
         $this->expectException(ProcessFailedException::class);
 
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '1']))
+        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
             ->inDirectory($this->getScriptsDir())
             ->start();
 
@@ -248,10 +247,10 @@ final class ProcessTest extends TestCase
 
     public function test_command_signal_on_segfault_process(): void
     {
-        $this->expectExceptionMessage('Terminated by SIGSEGV (11). (code: 139, command: ["sh","exit.sh","--sleep","5"])');
+        $this->expectExceptionMessage('Terminated by SIGSEGV (11). (code: 139, command: ["bash","exit.sh","--sleep","5"])');
         $this->expectException(ProcessFailedException::class);
 
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '5']))
+        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '5']))
             ->inDirectory($this->getScriptsDir())
             ->start();
 
@@ -262,10 +261,10 @@ final class ProcessTest extends TestCase
 
     public function test_command_signal_on_terminated_process(): void
     {
-        $this->expectExceptionMessage('Terminated by SIGKILL (9). (code: 137, command: ["sh","exit.sh","--sleep","5"])');
+        $this->expectExceptionMessage('Terminated by SIGKILL (9). (code: 137, command: ["bash","exit.sh","--sleep","5"])');
         $this->expectException(ProcessFailedException::class);
 
-        $process = (new ProcessBuilder(['sh', 'exit.sh', '--sleep', '5']))
+        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '5']))
             ->inDirectory($this->getScriptsDir())
             ->start();
 
@@ -276,7 +275,7 @@ final class ProcessTest extends TestCase
 
     public function test_command_signal_on_terminated_process_with_timeout(): void
     {
-        $process = (new ProcessBuilder(['sh', 'trap-sigterm.sh']))
+        $process = (new ProcessBuilder(['bash', 'trap-sigterm.sh']))
             ->exceptedExitCodes(ExitCode::SIGKILL)
             ->inDirectory($this->getScriptsDir())
             ->start();
