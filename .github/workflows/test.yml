@@ -7,7 +7,6 @@ jobs:
     - uses: actions/checkout@v3
     - uses: php-actions/composer@v6
       with:
-        php_version: 8.2.10
         php_extensions: intl pcntl
     - uses: php-actions/phpunit@v3
       env:
@@ -15,8 +14,7 @@ jobs:
       with:
         bootstrap: vendor/autoload.php
         configuration: phpunit.xml
-        php_version: 8.2.10
-        php_extensions: intl mbstring pcntl xdebug
+        php_extensions: intl mbstring pcntl pcov xdebug
         args: --coverage-clover ./coverage.xml
     - uses: php-actions/phpstan@v3
       with:
