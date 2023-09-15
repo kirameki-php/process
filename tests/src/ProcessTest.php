@@ -5,7 +5,6 @@ namespace Tests\Kirameki\Process;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Process\ExitCode;
 use Kirameki\Process\ProcessBuilder;
-use function dump;
 use const SIGHUP;
 use const SIGINT;
 use const SIGKILL;
@@ -18,10 +17,16 @@ final class ProcessTest extends TestCase
     {
         $result = (new ProcessBuilder(['bash', 'exit.sh', '0']))
             ->inDirectory($this->getScriptsDir())
-            ->start();
+            ->start()
+            ->wait();
 
-        dump($result);
-
-        $result->wait(1);
+        $this->assertSame(0, $result->exitCode);
+        $this->assertNull($result->info->envs);
+        $this->assertSame(SIGTERM, $result->info->termSignal);
+        $this->assertSame('/app/tests/scripts', $result->info->workingDirectory);
+        $this->assertSame([], $result->info->exceptedExitCodes);
+        $this->assertIsInt($result->info->pid);
+        $this->assertTrue($result->succeeded());
+        $this->assertFalse($result->failed());
     }
 }
