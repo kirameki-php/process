@@ -8,14 +8,8 @@ jobs:
     - uses: php-actions/composer@v6
       with:
         php_extensions: intl pcntl
-    - uses: php-actions/phpunit@v3
-      env:
-        XDEBUG_MODE: coverage
-      with:
-        bootstrap: vendor/autoload.php
-        configuration: phpunit.xml
-        php_extensions: intl mbstring pcntl pcov xdebug
-        args: --coverage-clover ./coverage.xml
+    - name: Run test with docker compose
+      run: docker-compose run test
     - uses: php-actions/phpstan@v3
       with:
         memory_limit: 1G
