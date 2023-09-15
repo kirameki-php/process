@@ -97,7 +97,7 @@ class ProcessFailedException extends ProcessException
     {
         $number = $this->exitCode - 128;
         $name = $this->signalToName($number);
-        return "Terminated by {$name} ({$number})";
+        return "Terminated by {$name} ({$number}).";
     }
 
     /**

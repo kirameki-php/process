@@ -234,9 +234,20 @@ final class ProcessTest extends TestCase
         $this->assertFalse($process->signal(SIGHUP));
     }
 
+    public function test_command_signal_on_interrupt_process(): void
+    {
+        $this->expectExceptionMessage('["bash","exit.sh","130"] Terminated by SIGINT (2).');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::SIGINT]))
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
     public function test_command_signal_on_segfault_process(): void
     {
-        $this->expectExceptionMessage('["bash","exit.sh","--sleep","5"] Terminated by SIGSEGV (11)');
+        $this->expectExceptionMessage('["bash","exit.sh","139"] Terminated by SIGSEGV (11).');
         $this->expectException(ProcessFailedException::class);
 
         (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::SIGSEGV]))
@@ -247,7 +258,7 @@ final class ProcessTest extends TestCase
 
     public function test_command_signal_on_terminated_process(): void
     {
-        $this->expectExceptionMessage('["bash","exit.sh","--sleep","5"] Terminated by SIGKILL (9)');
+        $this->expectExceptionMessage('["bash","exit.sh","--sleep","5"] Terminated by SIGKILL (9).');
         $this->expectException(ProcessFailedException::class);
 
         $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '5']))
@@ -258,22 +269,22 @@ final class ProcessTest extends TestCase
 
         $process->wait();
     }
-//
-//    public function test_command_signal_on_terminated_process_with_timeout(): void
-//    {
-//        $process = (new ProcessBuilder(['bash', 'trap-sigterm.sh']))
-//            ->exceptedExitCodes(ExitCode::SIGKILL)
-//            ->inDirectory($this->getScriptsDir())
-//            ->start();
-//
-//        // wait for the process to register trap.
-//        $output = $process->getIterator()->current();
-//
-//        $signaled = $process->terminate(0.01);
-//        $result = $process->wait();
-//
-//        $this->assertSame("trapped\n", $output);
-//        $this->assertTrue($signaled);
-//        $this->assertSame(ExitCode::SIGKILL, $result->exitCode);
-//    }
+
+    public function test_command_signal_on_terminated_process_with_timeout(): void
+    {
+        $process = (new ProcessBuilder(['bash', 'trap-sigterm.sh']))
+            ->exceptedExitCodes(ExitCode::SIGKILL)
+            ->inDirectory($this->getScriptsDir())
+            ->start();
+
+        // wait for the process to register trap.
+        $output = $process->getIterator()->current();
+
+        $signaled = $process->terminate(0.01);
+        $result = $process->wait();
+
+        $this->assertSame("trapped\n", $output);
+        $this->assertTrue($signaled);
+        $this->assertSame(ExitCode::SIGKILL, $result->exitCode);
+    }
 }
