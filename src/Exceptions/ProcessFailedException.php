@@ -3,7 +3,9 @@
 namespace Kirameki\Process\Exceptions;
 
 use Kirameki\Core\Json;
+use Kirameki\Process\ProcessResult;
 use Throwable;
+use const PHP_EOL;
 use const SIGABRT;
 use const SIGALRM;
 use const SIGBUS;
@@ -42,12 +44,14 @@ class ProcessFailedException extends ProcessException
     /**
      * @param string|array<int, string> $command
      * @param int $exitCode
+     * @param ProcessResult $result
      * @param iterable<string, mixed>|null $context
      * @param Throwable|null $previous
      */
     public function __construct(
         protected string|array $command,
         protected int $exitCode,
+        protected ProcessResult $result,
         ?iterable $context = null,
         ?Throwable $previous = null,
     ) {
@@ -66,6 +70,8 @@ class ProcessFailedException extends ProcessException
 
         $commandString = Json::encode($command);
         $message .= "(code: {$exitCode}, command: {$commandString})";
+        $message .= PHP_EOL . $result->getStdout();
+        $message .= PHP_EOL . $result->getStderr();
 
         parent::__construct($message, $context, 0, $previous);
 
