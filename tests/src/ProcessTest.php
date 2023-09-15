@@ -97,4 +97,69 @@ final class ProcessTest extends TestCase
         $this->assertTrue($process->failed());
     }
 
+    public function test_command_invalid_usage_error(): void
+    {
+        $this->expectExceptionMessage('Misuse of shell builtins. (code: 2, command: ["bash","./missing-keyword.sh"])');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder(['bash', './missing-keyword.sh']))
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
+    public function test_command_invalid_usage_catch(): void
+    {
+        $process = (new ProcessBuilder(['bash', './missing-keyword.sh']))
+            ->exceptedExitCodes(ExitCode::INVALID_USAGE)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(ExitCode::INVALID_USAGE, $process->exitCode);
+        $this->assertFalse($process->succeeded());
+        $this->assertTrue($process->failed());
+    }
+
+    public function test_command_has_no_permission(): void
+    {
+        $this->expectExceptionMessage('Permission denied. (code: 126, command: "./non-executable.sh")');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder('./non-executable.sh'))
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
+    public function test_command_timed_out_error(): void
+    {
+        $this->expectExceptionMessage('Timed out. (code: 124, command: ["bash","exit.sh","--sleep","1"])');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
+            ->timeout(0.01)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
+    public function test_command_timed_out_catch(): void
+    {
+        $result = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
+            ->timeout(0.01)
+            ->exceptedExitCodes(ExitCode::TIMED_OUT)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(['timeout', '--kill-after', '10s', '0.01s', 'bash', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
+        $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
+        $this->assertSame(0.01, $result->info->timeout?->durationSeconds);
+        $this->assertSame(SIGTERM, $result->info->timeout->signal);
+        $this->assertSame(10.0, $result->info->timeout->killAfterSeconds);
+        $this->assertFalse($result->succeeded());
+        $this->assertTrue($result->failed());
+        $this->assertTrue($result->timedOut());
+    }
 }
