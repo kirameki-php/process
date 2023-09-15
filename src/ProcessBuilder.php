@@ -7,6 +7,7 @@ use Kirameki\Core\EventHandler;
 use Kirameki\Core\Exceptions\RuntimeException;
 use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Events\ProcessStarted;
+use Kirameki\Process\Exceptions\ProcessException;
 use Kirameki\Stream\FileStream;
 use function array_keys;
 use function array_map;
@@ -88,9 +89,24 @@ class ProcessBuilder
         int $signal = SIGTERM,
         ?float $killAfterSeconds = 10.0,
     ): static {
+        if ($durationSeconds !== null && $durationSeconds <= 0.0) {
+            throw new ProcessException("Expected \$durationSeconds to be> 0.0. Got {$durationSeconds}.", [
+                'command' => $this->command,
+                'durationSeconds' => $durationSeconds,
+            ]);
+        }
+
+        if ($killAfterSeconds !== null && $killAfterSeconds <= 0.0) {
+            throw new ProcessException("Expected \$killAfterSeconds to be> 0.0. Got {$killAfterSeconds}.", [
+                'command' => $this->command,
+                'killAfterSeconds' => $killAfterSeconds,
+            ]);
+        }
+
         $this->timeout = ($durationSeconds !== null)
             ? new TimeoutInfo($durationSeconds, $signal, $killAfterSeconds)
             : null;
+
         return $this;
     }
 

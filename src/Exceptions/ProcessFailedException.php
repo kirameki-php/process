@@ -55,23 +55,20 @@ class ProcessFailedException extends ProcessException
         ?iterable $context = null,
         ?Throwable $previous = null,
     ) {
-        $message = match (true) {
-            $exitCode === 1 => 'General error.',
-            $exitCode === 2 => 'Misuse of shell builtins.',
-            $exitCode === 124 => 'Timed out.',
-            $exitCode === 126 => 'Permission denied.',
-            $exitCode === 127 => 'Command not found.',
+        $message = Json::encode($command) . ' ';
+        $message .= match (true) {
+            $exitCode === 1 => $this->generateCommonMessage('General error'),
+            $exitCode === 2 => $this->generateCommonMessage('Misuse of shell builtins'),
+            $exitCode === 124 => $this->generateCommonMessage('Timed out'),
+            $exitCode === 126 => $this->generateCommonMessage('Permission denied'),
+            $exitCode === 127 => $this->generateCommonMessage('Command not found'),
             $exitCode > 128 && $exitCode < 160 => $this->generateSignalMessage(),
-            default => '',
+            default => $this->generateCommonMessage(),
         };
-        if ($message !== '') {
-            $message .= ' ';
-        }
 
-        $commandString = Json::encode($command);
-        $message .= "(code: {$exitCode}, command: {$commandString})";
-        $message .= PHP_EOL . $result->getStdout();
-        $message .= PHP_EOL . $result->getStderr();
+        if ($stderr = $result->getStderr()) {
+            $message .= PHP_EOL . $stderr;
+        }
 
         parent::__construct($message, $context, 0, $previous);
 
@@ -87,11 +84,20 @@ class ProcessFailedException extends ProcessException
         return $this->exitCode;
     }
 
+    protected function generateCommonMessage(string $description = ''): string
+    {
+        $message = "Exited with code {$this->exitCode}";
+        if ($description !== '') {
+            $message .= ": {$description}";
+        }
+        return $message . '.';
+    }
+
     protected function generateSignalMessage(): string
     {
         $number = $this->exitCode - 128;
         $name = $this->signalToName($number);
-        return "Terminated by {$name} ({$number}).";
+        return "Terminated by {$name} ({$number})";
     }
 
     /**
