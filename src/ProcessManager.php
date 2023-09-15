@@ -3,6 +3,7 @@
 namespace Kirameki\Process;
 
 use Kirameki\Event\EventDispatcher;
+use function array_values;
 
 readonly class ProcessManager
 {
@@ -13,12 +14,12 @@ readonly class ProcessManager
     }
 
     /**
-     * @param string|list<string> $command
+     * @param string ...$command
      * @return ProcessBuilder
      */
-    public function command(string|array $command): ProcessBuilder
+    public function command(string ...$command): ProcessBuilder
     {
-        return (new ProcessBuilder($command))
+        return (new ProcessBuilder(array_values($command)))
             ->onStarted($this->events->dispatch(...))
             ->onFinished($this->events->dispatch(...));
     }

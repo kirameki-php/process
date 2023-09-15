@@ -4,8 +4,8 @@ namespace Tests\Kirameki\Process;
 
 use Kirameki\Process\ExitCode;
 use Kirameki\Process\ProcessBuilder;
+use Throwable;
 use function array_keys;
-use function dump;
 use const SIGKILL;
 
 final class ProcessRunnerTest extends TestCase
@@ -26,9 +26,9 @@ final class ProcessRunnerTest extends TestCase
             $this->assertSame(["out\n"], $outs[1]);
             $this->assertSame([1, 2], array_keys($outs));
             $this->assertSame(["err\n"], $outs[2]);
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             $process->wait();
-            dump($e);
+            throw $e;
         }
     }
 
