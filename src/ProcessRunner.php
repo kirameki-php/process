@@ -228,9 +228,7 @@ class ProcessRunner implements IteratorAggregate
             return;
         }
 
-        throw new ProcessFailedException($this->info->definedCommand, $code, [
-            'result' => $result,
-        ]);
+        throw new ProcessFailedException($this->info->definedCommand, $code, $result);
     }
 
     /**

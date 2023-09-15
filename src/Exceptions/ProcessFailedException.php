@@ -76,6 +76,7 @@ class ProcessFailedException extends ProcessException
         parent::__construct($message, $context, 0, $previous);
 
         $this->addContext('exitCode', $exitCode);
+        $this->addContext('result', $result);
     }
 
     /**
