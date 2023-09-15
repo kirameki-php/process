@@ -19,7 +19,9 @@ final class ProcessTest extends TestCase
         $result = (new ProcessBuilder(['bash', 'exit.sh', '0']))
             ->inDirectory($this->getScriptsDir())
             ->start();
-        
+
         dump($result);
+
+        $result->wait(1);
     }
 }
