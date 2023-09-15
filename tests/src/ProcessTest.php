@@ -73,65 +73,65 @@ final class ProcessTest extends TestCase
         $this->assertSame(ExitCode::SIGINT, $result->exitCode);
         $this->assertSame(SIGINT, $result->info->termSignal);
     }
-//
-//    public function test_exitCode_general_error_exception(): void
-//    {
-//        $this->expectExceptionMessage('["bash","exit.sh","1"] Exited with code 1: General error.');
-//        $this->expectException(ProcessFailedException::class);
-//
-//        (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//    }
-//
-//    public function test_exitCode_general_error_catch(): void
-//    {
-//        $process = (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
-//            ->inDirectory($this->getScriptsDir())
-//            ->exceptedExitCodes(ExitCode::GENERAL_ERROR)
-//            ->start()
-//            ->wait();
-//
-//        $this->assertSame(ExitCode::GENERAL_ERROR, $process->exitCode);
-//        $this->assertFalse($process->succeeded());
-//        $this->assertTrue($process->failed());
-//    }
-//
-//    public function test_command_invalid_usage_error(): void
-//    {
-//        $this->expectExceptionMessage('["bash","./missing-keyword.sh"] Exited with code 2: Misuse of shell builtins.' . "\n" . './missing-keyword.sh: line 7: syntax error: unexpected end of file');
-//        $this->expectException(ProcessFailedException::class);
-//
-//        (new ProcessBuilder(['bash', './missing-keyword.sh']))
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//    }
-//
-//    public function test_command_invalid_usage_catch(): void
-//    {
-//        $process = (new ProcessBuilder(['bash', './missing-keyword.sh']))
-//            ->exceptedExitCodes(ExitCode::INVALID_USAGE)
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//
-//        $this->assertSame(ExitCode::INVALID_USAGE, $process->exitCode);
-//        $this->assertFalse($process->succeeded());
-//        $this->assertTrue($process->failed());
-//    }
-//
-//    public function test_command_has_no_permission(): void
-//    {
-//        $this->expectExceptionMessage('"./non-executable.sh" Exited with code 126: Permission denied.' . "\n" . 'sh: ./non-executable.sh: Permission denied');
-//        $this->expectException(ProcessFailedException::class);
-//
-//        (new ProcessBuilder('./non-executable.sh'))
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//    }
+
+    public function test_exitCode_general_error_exception(): void
+    {
+        $this->expectExceptionMessage('["bash","exit.sh","1"] Exited with code 1: General error.');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
+    public function test_exitCode_general_error_catch(): void
+    {
+        $process = (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
+            ->inDirectory($this->getScriptsDir())
+            ->exceptedExitCodes(ExitCode::GENERAL_ERROR)
+            ->start()
+            ->wait();
+
+        $this->assertSame(ExitCode::GENERAL_ERROR, $process->exitCode);
+        $this->assertFalse($process->succeeded());
+        $this->assertTrue($process->failed());
+    }
+
+    public function test_command_invalid_usage_error(): void
+    {
+        $this->expectExceptionMessage('["bash","./missing-keyword.sh"] Exited with code 2: Misuse of shell builtins.' . "\n" . './missing-keyword.sh: line 7: syntax error: unexpected end of file');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder(['bash', './missing-keyword.sh']))
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
+    public function test_command_invalid_usage_catch(): void
+    {
+        $process = (new ProcessBuilder(['bash', './missing-keyword.sh']))
+            ->exceptedExitCodes(ExitCode::INVALID_USAGE)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(ExitCode::INVALID_USAGE, $process->exitCode);
+        $this->assertFalse($process->succeeded());
+        $this->assertTrue($process->failed());
+    }
+
+    public function test_command_has_no_permission(): void
+    {
+        $this->expectExceptionMessage('"./non-executable.sh" Exited with code 126: Permission denied.' . "\n" . 'sh: ./non-executable.sh: Permission denied');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder('./non-executable.sh'))
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
 //
 //    public function test_command_timed_out_error(): void
 //    {
