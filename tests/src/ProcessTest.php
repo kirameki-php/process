@@ -132,73 +132,73 @@ final class ProcessTest extends TestCase
             ->start()
             ->wait();
     }
-//
-//    public function test_command_timed_out_error(): void
-//    {
-//        $this->expectExceptionMessage('["bash","exit.sh","--sleep","1"] Exited with code 124: Timed out.');
-//        $this->expectException(ProcessFailedException::class);
-//
-//        (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
-//            ->timeout(0.01)
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//    }
-//
-//    public function test_command_timed_out_catch(): void
-//    {
-//        $result = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
-//            ->timeout(0.01)
-//            ->exceptedExitCodes(ExitCode::TIMED_OUT)
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//
-//        $this->assertSame(['timeout', '--kill-after', '10s', '0.01s', 'bash', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
-//        $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
-//        $this->assertSame(0.01, $result->info->timeout?->durationSeconds);
-//        $this->assertSame(SIGTERM, $result->info->timeout->signal);
-//        $this->assertSame(10.0, $result->info->timeout->killAfterSeconds);
-//        $this->assertFalse($result->succeeded());
-//        $this->assertTrue($result->failed());
-//        $this->assertTrue($result->timedOut());
-//    }
-//
-//    public function test_command_timed_out_disable_timeout(): void
-//    {
-//        $result = (new ProcessBuilder(['bash', 'exit.sh']))
-//            ->timeout(0.01)->timeout(null)
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//
-//        $this->assertSame(['bash', 'exit.sh'], $result->info->executedCommand);
-//        $this->assertSame(ExitCode::SUCCESS, $result->exitCode);
-//        $this->assertNull($result->info->timeout);
-//        $this->assertFalse($result->timedOut());
-//    }
-//
-//    public function test_command_timed_out_change_signal(): void
-//    {
-//        $result = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
-//            ->timeout(0.01, SIGINT, null)
-//            ->exceptedExitCodes(ExitCode::TIMED_OUT)
-//            ->inDirectory($this->getScriptsDir())
-//            ->start()
-//            ->wait();
-//
-//        $this->assertSame(['timeout', '--signal', (string) SIGINT, '0.01s', 'bash', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
-//        $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
-//        $this->assertSame(SIGINT, $result->info->timeout?->signal);
-//    }
-//
-//    public function test_command_timeout_error_on_negative_seconds(): void
-//    {
-//        $this->expectExceptionMessage('Expected $durationSeconds to be> 0.0. Got -0.01.');
-//        $this->expectException(ProcessException::class);
-//
-//        (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))->timeout(-0.01);
-//    }
+
+    public function test_command_timed_out_error(): void
+    {
+        $this->expectExceptionMessage('["bash","exit.sh","--sleep","1"] Exited with code 124: Timed out.');
+        $this->expectException(ProcessFailedException::class);
+
+        (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
+            ->timeout(0.01)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+    }
+
+    public function test_command_timed_out_catch(): void
+    {
+        $result = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
+            ->timeout(0.01)
+            ->exceptedExitCodes(ExitCode::TIMED_OUT)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(['timeout', '--kill-after', '10s', '0.01s', 'bash', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
+        $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
+        $this->assertSame(0.01, $result->info->timeout?->durationSeconds);
+        $this->assertSame(SIGTERM, $result->info->timeout->signal);
+        $this->assertSame(10.0, $result->info->timeout->killAfterSeconds);
+        $this->assertFalse($result->succeeded());
+        $this->assertTrue($result->failed());
+        $this->assertTrue($result->timedOut());
+    }
+
+    public function test_command_timed_out_disable_timeout(): void
+    {
+        $result = (new ProcessBuilder(['bash', 'exit.sh']))
+            ->timeout(0.01)->timeout(null)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(['bash', 'exit.sh'], $result->info->executedCommand);
+        $this->assertSame(ExitCode::SUCCESS, $result->exitCode);
+        $this->assertNull($result->info->timeout);
+        $this->assertFalse($result->timedOut());
+    }
+
+    public function test_command_timed_out_change_signal(): void
+    {
+        $result = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
+            ->timeout(0.01, SIGINT, null)
+            ->exceptedExitCodes(ExitCode::TIMED_OUT)
+            ->inDirectory($this->getScriptsDir())
+            ->start()
+            ->wait();
+
+        $this->assertSame(['timeout', '--signal', (string) SIGINT, '0.01s', 'bash', 'exit.sh', '--sleep', '1'], $result->info->executedCommand);
+        $this->assertSame(ExitCode::TIMED_OUT, $result->exitCode);
+        $this->assertSame(SIGINT, $result->info->timeout?->signal);
+    }
+
+    public function test_command_timeout_error_on_negative_seconds(): void
+    {
+        $this->expectExceptionMessage('Expected $durationSeconds to be> 0.0. Got -0.01.');
+        $this->expectException(ProcessException::class);
+
+        (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))->timeout(-0.01);
+    }
 //
 //    public function test_command_timeout_error_on_negative_kill_after(): void
 //    {
