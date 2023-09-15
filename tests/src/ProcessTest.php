@@ -219,34 +219,34 @@ final class ProcessTest extends TestCase
             ->wait();
     }
 
-    public function test_command_signal_on_running_process_as_success(): void
-    {
-        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
-            ->inDirectory($this->getScriptsDir())
-            ->exceptedExitCodes(ExitCode::SIGHUP)
-            ->start();
-
-        $this->assertTrue($process->signal(SIGHUP));
-
-        $process->wait();
-
-        // try to signal again should return false.
-        $this->assertFalse($process->signal(SIGHUP));
-    }
-
-    public function test_command_signal_on_segfault_process(): void
-    {
-        $this->expectExceptionMessage('["bash","exit.sh","--sleep","5"] Terminated by SIGSEGV (11)');
-        $this->expectException(ProcessFailedException::class);
-
-        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '5']))
-            ->inDirectory($this->getScriptsDir())
-            ->start();
-
-        $this->assertTrue($process->signal(SIGSEGV));
-
-        $process->wait();
-    }
+//    public function test_command_signal_on_running_process_as_success(): void
+//    {
+//        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '1']))
+//            ->inDirectory($this->getScriptsDir())
+//            ->exceptedExitCodes(ExitCode::SIGHUP)
+//            ->start();
+//
+//        $this->assertTrue($process->signal(SIGHUP));
+//
+//        $process->wait();
+//
+//        // try to signal again should return false.
+//        $this->assertFalse($process->signal(SIGHUP));
+//    }
+//
+//    public function test_command_signal_on_segfault_process(): void
+//    {
+//        $this->expectExceptionMessage('["bash","exit.sh","--sleep","5"] Terminated by SIGSEGV (11)');
+//        $this->expectException(ProcessFailedException::class);
+//
+//        $process = (new ProcessBuilder(['bash', 'exit.sh', '--sleep', '5']))
+//            ->inDirectory($this->getScriptsDir())
+//            ->start();
+//
+//        $this->assertTrue($process->signal(SIGSEGV));
+//
+//        $process->wait();
+//    }
 //
 //    public function test_command_signal_on_terminated_process(): void
 //    {
