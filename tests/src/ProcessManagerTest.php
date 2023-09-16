@@ -5,7 +5,6 @@ namespace Tests\Kirameki\Process;
 use Kirameki\Event\EventDispatcher;
 use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Events\ProcessStarted;
-use Kirameki\Process\ProcessInfo;
 use Kirameki\Process\ProcessManager;
 
 final class ProcessManagerTest extends TestCase

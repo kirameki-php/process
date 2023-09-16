@@ -79,10 +79,18 @@ final class ProcessTest extends TestCase
         $this->expectExceptionMessage('["bash","exit.sh","1"] Exited with code 1: General error.');
         $this->expectException(ProcessFailedException::class);
 
-        (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
-            ->inDirectory($this->getScriptsDir())
-            ->start()
-            ->wait();
+        $exitCode = 0;
+        try {
+            (new ProcessBuilder(['bash', 'exit.sh', (string) ExitCode::GENERAL_ERROR]))
+                ->inDirectory($this->getScriptsDir())
+                ->start()
+                ->wait();
+        } catch (ProcessFailedException $e) {
+            $exitCode = $e->getExitCode();
+            throw $e;
+        } finally {
+            $this->assertSame(ExitCode::GENERAL_ERROR, $exitCode);
+        }
     }
 
     public function test_exitCode_general_error_catch(): void
