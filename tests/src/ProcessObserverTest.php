@@ -3,6 +3,7 @@
 namespace Tests\Kirameki\Process;
 
 use Kirameki\Process\ProcessBuilder;
+use function range;
 use function usleep;
 use const SIGCONT;
 use const SIGSTOP;
@@ -21,5 +22,20 @@ final class ProcessObserverTest extends TestCase
         $result = $process->wait();
 
         $this->assertTrue($result->succeeded());
+    }
+
+    public function test_multiple_processes(): void
+    {
+        $processes = [];
+        foreach (range(1, 100) as $i) {
+            $process = (new ProcessBuilder(['echo', '$$']))->start();
+            $processes[$process->info->pid] = $process;
+        }
+
+        foreach ($processes as $process) {
+            $process->wait();
+        }
+
+        $this->assertTrue(true);
     }
 }

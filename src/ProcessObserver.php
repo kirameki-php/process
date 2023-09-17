@@ -7,7 +7,6 @@ use Kirameki\Core\Signal;
 use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessException;
 use function array_key_exists;
-use function dump;
 use function in_array;
 use const CLD_EXITED;
 use const CLD_KILLED;
@@ -34,6 +33,11 @@ class ProcessObserver
     protected static int $processCount = 0;
 
     /**
+     * @var Closure(SignalEvent $event): mixed|null
+     */
+    protected static ?Closure $signalHandler = null;
+
+    /**
      * @var array<int, int> [pid => exitCode]
      */
     protected array $exitedBeforeRegistered = [];
@@ -55,7 +59,8 @@ class ProcessObserver
 
         // only register signal handler if there are no more signals.
         if (static::$processCount === 0) {
-            Signal::handle(SIGCHLD, $self->handleSignal(...));
+            static::$signalHandler = $self->handleSignal(...);
+            Signal::handle(SIGCHLD, static::$signalHandler);
         }
 
         static::$processCount++;
@@ -73,6 +78,12 @@ class ProcessObserver
     }
 
     /**
+     * WARNING: this method is called even for ALL SIGCHLD signals, which include signals
+     * that were not called through ProcessManager (e.g. calling proc_open() directly).
+     * Which means that $this->exitedBeforeRegistered may contain exit codes that are not
+     * related to ProcessManager. Thus, we will clear this array when all process called
+     * through ProcessManager have exited.
+     *
      * @param SignalEvent $event
      * @return void
      */
@@ -92,17 +103,15 @@ class ProcessObserver
             $exitCode += 128;
         }
 
-        static::$processCount--;
-
-        // evict handler if there's no more processes to wait for.
-        if (static::$processCount === 0) {
-            $event->evictCallback();
-        }
-
         if (array_key_exists($pid, $this->exitCallbacks)) {
-            ($this->exitCallbacks[$pid])($exitCode);
+            $callback = $this->exitCallbacks[$pid];
             unset($this->exitCallbacks[$pid]);
+            $this->preProcessExit();
+            $callback($exitCode);
         } else {
+            // There are some rare cases where the process exits before the ProcessRunner
+            // has a chance to register a handler. In that case, store the exit code
+            // and invoke the callback when the handler is registered.
             $this->exitedBeforeRegistered[$pid] = $exitCode;
         }
     }
@@ -122,9 +131,25 @@ class ProcessObserver
         if (array_key_exists($pid, $this->exitedBeforeRegistered)) {
             $exitCode = $this->exitedBeforeRegistered[$pid];
             unset($this->exitedBeforeRegistered[$pid]);
+            $this->preProcessExit();
             $callback($exitCode);
         } else {
             $this->exitCallbacks[$pid] = $callback;
+        }
+    }
+
+    protected function preProcessExit(): void
+    {
+        static::$processCount--;
+
+        if (static::$processCount === 0) {
+            if (static::$signalHandler !== null) {
+                Signal::clearHandler(SIGCHLD, static::$signalHandler);
+                static::$signalHandler = null;
+            }
+            // We need to explicitly clear this.
+            // Read handleSignal()'s comment for more info.
+            $this->exitedBeforeRegistered = [];
         }
     }
 }
