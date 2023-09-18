@@ -3,6 +3,7 @@
 namespace Kirameki\Process;
 
 use Closure;
+use Kirameki\Core\Exceptions\UnreachableException;
 use Kirameki\Core\Signal;
 use Kirameki\Core\SignalEvent;
 use Kirameki\Process\Exceptions\ProcessException;
@@ -124,7 +125,9 @@ class ProcessObserver
     public function onExit(int $pid, Closure $callback): void
     {
         if (array_key_exists($pid, $this->exitCallbacks)) {
-            throw new ProcessException('Callback already registered for pid: ' . $pid);
+            // @codeCoverageIgnoreStart
+            throw new UnreachableException('Callback already registered for pid: ' . $pid);
+            // @codeCoverageIgnoreEnd
         }
 
         // if the process was already triggered, run the callback immediately.

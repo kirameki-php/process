@@ -21,6 +21,7 @@ final class ProcessObserverTest extends TestCase
         $process->signal(SIGCONT);
         $result = $process->wait();
 
+        $this->assertFalse($process->isRunning());
         $this->assertTrue($result->succeeded());
     }
 
