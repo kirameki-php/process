@@ -6,6 +6,7 @@ use Kirameki\Process\ExitCode;
 use Kirameki\Process\ProcessBuilder;
 use Throwable;
 use function array_keys;
+use function dump;
 use const SIGKILL;
 
 final class ProcessRunnerTest extends TestCase
@@ -60,5 +61,19 @@ final class ProcessRunnerTest extends TestCase
         $process->wait();
 
         $this->assertTrue($process->isDone());
+    }
+
+    public function test_writeToStdin(): void
+    {
+        $process = (new ProcessBuilder(['bash', 'exit.sh']))
+            ->inDirectory($this->getScriptsDir())
+            ->start();
+
+        $process->writeToStdin("hello");
+        $process->writeToStdin("world");
+
+        $result = $process->wait();
+
+        $this->assertSame("hello\nworld\n", $result->getStdin());
     }
 }

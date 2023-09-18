@@ -50,14 +50,6 @@ readonly class ProcessResult
     /**
      * @return string
      */
-    public function readStdinBuffer(): string
-    {
-        return $this->stdin?->readToEnd() ?? '';
-    }
-
-    /**
-     * @return string
-     */
     public function readStdoutBuffer(): string
     {
         return $this->stdout->readToEnd();

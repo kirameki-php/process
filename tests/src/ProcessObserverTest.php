@@ -28,7 +28,7 @@ final class ProcessObserverTest extends TestCase
     public function test_multiple_processes(): void
     {
         $processes = [];
-        foreach (range(1, 100) as $i) {
+        foreach (range(1, 300) as $i) {
             $process = (new ProcessBuilder(['echo', '$$']))->start();
             $processes[$process->info->pid] = $process;
         }
