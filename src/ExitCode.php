@@ -2,7 +2,7 @@
 
 namespace Kirameki\Process;
 
-class ExitCode
+final class ExitCode
 {
     public const SUCCESS = 0;
     public const GENERAL_ERROR = 1;
@@ -11,9 +11,11 @@ class ExitCode
     public const TIMEOUT_COMMAND_FAILED = 125;
     public const COMMAND_NOT_EXECUTABLE = 126;
     public const COMMAND_NOT_FOUND = 127;
+    public const INVALID_ARGUMENT = 128;
     public const SIGHUP = 129;
     public const SIGINT = 130;
     public const SIGKILL = 137;
     public const SIGSEGV = 139;
     public const SIGTERM = 143;
+    public const STATUS_OUT_OF_RANGE = 255;
 }
