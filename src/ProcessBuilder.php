@@ -3,8 +3,8 @@
 namespace Kirameki\Process;
 
 use Closure;
-use Kirameki\Core\EventHandler;
 use Kirameki\Core\Exceptions\RuntimeException;
+use Kirameki\Event\EventHandler;
 use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Events\ProcessStarted;
 use Kirameki\Process\Exceptions\ProcessException;
@@ -136,7 +136,7 @@ class ProcessBuilder
      */
     public function onStarted(Closure $callback): static
     {
-        ($this->onStarted ??= new EventHandler(ProcessStarted::class))->listen($callback);
+        ($this->onStarted ??= new EventHandler(ProcessStarted::class))->append($callback);
         return $this;
     }
 
@@ -146,7 +146,7 @@ class ProcessBuilder
      */
     public function onFinished(Closure $callback): static
     {
-        ($this->onFinished ??= new EventHandler(ProcessFinished::class))->listen($callback);
+        ($this->onFinished ??= new EventHandler(ProcessFinished::class))->append($callback);
         return $this;
     }
 
@@ -186,7 +186,7 @@ class ProcessBuilder
 
         $info = $this->buildInfo($shellCommand, $pid);
 
-        $this->onStarted?->dispatch(new ProcessStarted($info));
+        $this->onStarted?->emit(new ProcessStarted($info));
 
         return new ProcessRunner(
             $process,

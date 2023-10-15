@@ -2,7 +2,7 @@
 
 namespace Tests\Kirameki\Process;
 
-use Kirameki\Event\EventDispatcher;
+use Kirameki\Event\EventManager;
 use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Events\ProcessStarted;
 use Kirameki\Process\ProcessManager;
@@ -11,11 +11,11 @@ final class ProcessManagerTest extends TestCase
 {
     public function test_command(): void
     {
-        $events = new EventDispatcher();
+        $events = new EventManager();
         $started = 0;
-        $events->listen(ProcessStarted::class, function () use (&$started) { $started++; });
+        $events->append(ProcessStarted::class, function () use (&$started) { $started++; });
         $finished = 0;
-        $events->listen(ProcessFinished::class, function () use (&$finished) { $finished++; });
+        $events->append(ProcessFinished::class, function () use (&$finished) { $finished++; });
 
         $procs = new ProcessManager($events);
         $processList = [];

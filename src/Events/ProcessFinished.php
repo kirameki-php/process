@@ -2,7 +2,7 @@
 
 namespace Kirameki\Process\Events;
 
-use Kirameki\Core\Event;
+use Kirameki\Event\Event;
 use Kirameki\Process\ProcessInfo;
 
 class ProcessFinished extends Event

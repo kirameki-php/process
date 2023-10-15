@@ -3,8 +3,8 @@
 namespace Kirameki\Process;
 
 use IteratorAggregate;
-use Kirameki\Core\EventHandler;
 use Kirameki\Core\Exceptions\UnreachableException;
+use Kirameki\Event\EventHandler;
 use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Exceptions\ProcessFailedException;
 use Kirameki\Stream\FileStream;
@@ -220,7 +220,7 @@ class ProcessRunner implements IteratorAggregate
      */
     protected function handleExit(int $code): void
     {
-        $this->onFinished?->dispatch(new ProcessFinished($this->info, $code));
+        $this->onFinished?->emit(new ProcessFinished($this->info, $code));
 
         $result = $this->result = $this->buildResult($code);
 
