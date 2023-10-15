@@ -9,7 +9,7 @@ jobs:
       with:
         php_extensions: intl pcntl
     - name: Run test with docker compose
-      run: docker compose run app composer ci-test
+      run: docker compose run --quiet-pull --rm app composer ci-test
     - uses: php-actions/phpstan@v3
       with:
         memory_limit: 1G

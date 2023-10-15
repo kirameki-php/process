@@ -4,3 +4,7 @@ parameters:
         - src/
     excludePaths:
         - tests/*
+    ignoreErrors:
+        - message: "#^Offset int on array\\<int, Kirameki\\\\Event\\\\EventHandler\\<Kirameki\\\\Process\\\\SignalEvent\\>\\> in isset\\(\\) always exists and is not nullable\\.$#"
+          count: 1
+          path: src/Signal.php
