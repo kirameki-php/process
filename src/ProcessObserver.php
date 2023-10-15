@@ -4,9 +4,6 @@ namespace Kirameki\Process;
 
 use Closure;
 use Kirameki\Core\Exceptions\UnreachableException;
-use Kirameki\Core\Signal;
-use Kirameki\Core\SignalEvent;
-use Kirameki\Process\Exceptions\ProcessException;
 use function array_key_exists;
 use function in_array;
 use const CLD_EXITED;
