@@ -4,6 +4,8 @@ namespace Kirameki\Process;
 
 use Closure;
 use Kirameki\Core\Exceptions\UnreachableException;
+use Kirameki\Event\Listeners\CallbackListener;
+use Kirameki\Event\Listeners\EventListener;
 use function array_key_exists;
 use function in_array;
 use const CLD_EXITED;
@@ -31,9 +33,9 @@ class ProcessObserver
     protected static int $processCount = 0;
 
     /**
-     * @var Closure(SignalEvent $event): mixed|null
+     * @var EventListener<SignalEvent>|null
      */
-    protected static ?Closure $signalHandler = null;
+    protected static ?EventListener $signalHandler = null;
 
     /**
      * @var array<int, int> [pid => exitCode]
@@ -57,8 +59,8 @@ class ProcessObserver
 
         // only register signal handler if there are no more signals.
         if (static::$processCount === 0) {
-            static::$signalHandler = $self->handleSignal(...);
-            Signal::handle(SIGCHLD, static::$signalHandler);
+            static::$signalHandler = new CallbackListener($self->handleSignal(...));
+            Signal::addListener(SIGCHLD, static::$signalHandler);
         }
 
         static::$processCount++;

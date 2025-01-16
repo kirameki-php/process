@@ -5,6 +5,7 @@ namespace Kirameki\Process;
 use Closure;
 use Kirameki\Core\Exceptions\RuntimeException;
 use Kirameki\Event\EventHandler;
+use Kirameki\Event\Listeners\CallbackListener;
 use Kirameki\Process\Events\ProcessFinished;
 use Kirameki\Process\Events\ProcessStarted;
 use Kirameki\Process\Exceptions\ProcessException;
@@ -136,7 +137,7 @@ class ProcessBuilder
      */
     public function onStarted(Closure $callback): static
     {
-        ($this->onStarted ??= new EventHandler(ProcessStarted::class))->append($callback);
+        ($this->onStarted ??= new EventHandler(ProcessStarted::class))->append(new CallbackListener($callback));
         return $this;
     }
 
@@ -146,7 +147,7 @@ class ProcessBuilder
      */
     public function onFinished(Closure $callback): static
     {
-        ($this->onFinished ??= new EventHandler(ProcessFinished::class))->append($callback);
+        ($this->onFinished ??= new EventHandler(ProcessFinished::class))->append(new CallbackListener($callback));
         return $this;
     }
 
@@ -217,7 +218,7 @@ class ProcessBuilder
     }
 
     /**
-     * @return string|array<int, string>
+     * @return string|list<string>
      */
     public function buildShellCommand(): string|array
     {
@@ -231,7 +232,7 @@ class ProcessBuilder
 
     /**
      * @see https://man7.org/linux/man-pages/man1/timeout.1.html
-     * @return array<int, string>
+     * @return list<string>
      */
     protected function buildTimeoutCommand(): array
     {

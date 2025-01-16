@@ -7,6 +7,8 @@ use Kirameki\Core\Exceptions\LogicException;
 use Kirameki\Core\Exceptions\UnreachableException;
 use Kirameki\Core\StaticClass;
 use Kirameki\Event\EventHandler;
+use Kirameki\Event\Listeners\CallbackListener;
+use Kirameki\Event\Listeners\EventListener;
 use function array_keys;
 use function compact;
 use function in_array;
@@ -82,20 +84,20 @@ final class Signal extends StaticClass
      */
     public static function handle(int $signal, Closure $callback): void
     {
-        self::addCallback($signal, $callback);
+        self::addListener($signal, new CallbackListener($callback));
     }
 
     /**
      * @param int $signal
-     * @param Closure(SignalEvent): mixed $callback
+     * @param EventListener<SignalEvent> $listener
      * @return void
      */
-    protected static function addCallback(int $signal, Closure $callback): void
+    public static function addListener(int $signal, EventListener $listener): void
     {
         if ($signal === SIGKILL || $signal === SIGSEGV) {
             throw new LogicException('SIGKILL and SIGSEGV cannot be captured.', [
                 'signal' => $signal,
-                'callback' => $callback,
+                'listener' => $listener,
             ]);
         }
 
@@ -109,7 +111,7 @@ final class Signal extends StaticClass
         }
 
         self::$callbacks[$signal] ??= new EventHandler(SignalEvent::class);
-        self::$callbacks[$signal]->append($callback);
+        self::$callbacks[$signal]->append($listener);
     }
 
     /**
@@ -205,16 +207,16 @@ final class Signal extends StaticClass
      * Returns the number of callbacks removed.
      *
      * @param int $signal
-     * @param Closure(SignalEvent): mixed $callback
+     * @param EventListener<SignalEvent> $listener
      * @return int
      */
-    public static function clearHandler(int $signal, Closure $callback): int
+    public static function clearHandler(int $signal, EventListener $listener): int
     {
         if (!isset(self::$callbacks[$signal])) {
             return 0;
         }
 
-        $result = self::$callbacks[$signal]->removeListener($callback);
+        $result = self::$callbacks[$signal]->removeListener($listener);
 
         if (self::$callbacks[$signal]->hasNoListeners()) {
             self::clearHandlers($signal);
