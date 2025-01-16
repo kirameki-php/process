@@ -80,19 +80,20 @@ final class Signal extends StaticClass
      * Signal number to handle.
      * @param Closure(SignalEvent): mixed $callback
      * Callback to be invoked when the signal is received.
-     * @return void
+     * @return CallbackListener<SignalEvent>
      */
-    public static function handle(int $signal, Closure $callback): void
+    public static function handle(int $signal, Closure $callback): CallbackListener
     {
-        self::addListener($signal, new CallbackListener($callback));
+        return self::addListener($signal, new CallbackListener($callback));
     }
 
     /**
+     * @template TListener of EventListener<SignalEvent>
      * @param int $signal
-     * @param EventListener<SignalEvent> $listener
-     * @return void
+     * @param TListener $listener
+     * @return TListener
      */
-    public static function addListener(int $signal, EventListener $listener): void
+    public static function addListener(int $signal, EventListener $listener): EventListener
     {
         if ($signal === SIGKILL || $signal === SIGSEGV) {
             throw new LogicException('SIGKILL and SIGSEGV cannot be captured.', [
@@ -112,6 +113,8 @@ final class Signal extends StaticClass
 
         self::$callbacks[$signal] ??= new EventHandler(SignalEvent::class);
         self::$callbacks[$signal]->append($listener);
+
+        return $listener;
     }
 
     /**

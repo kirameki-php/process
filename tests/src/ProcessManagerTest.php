@@ -13,9 +13,9 @@ final class ProcessManagerTest extends TestCase
     {
         $events = new EventManager();
         $started = 0;
-        $events->append(ProcessStarted::class, function () use (&$started) { $started++; });
+        $events->on(function (ProcessStarted $_) use (&$started) { $started++; });
         $finished = 0;
-        $events->append(ProcessFinished::class, function () use (&$finished) { $finished++; });
+        $events->on(function (ProcessFinished $_) use (&$finished) { $finished++; });
 
         $procs = new ProcessManager($events);
         $processList = [];
